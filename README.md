@@ -3,9 +3,6 @@
 This repository contains resources and notebooks for fringe detection in imaging data, likely related to plasma imaging research at UC Berkeley.
 
 ## Contents
-- `EvenIllumination.ipynb`: Jupyter notebook for processing or analyzing images with even illumination.
-- `FringeDetection.ipynb`: Jupyter notebook focused on fringe detection algorithms and analysis.
-- `binary.png`: Example or output image, possibly showing binary thresholding.
 - `Reference.png`, `ReferenceCropped.png`: Reference images used for calibration or comparison.
 - `Shot.png`, `ShotCropped.png`: Sample images for analysis, possibly raw and cropped versions.
 
