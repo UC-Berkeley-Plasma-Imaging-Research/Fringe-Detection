@@ -1,0 +1,58 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    name: Build Windows executable and upload to Release
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build single-file executable with PyInstaller
+        run: |
+          pyinstaller --noconfirm --onefile --name "Fringe-Detection" even_illumination_app.py
+
+      - name: Prepare artifact
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Path dist_zip -Force | Out-Null
+          $exe = Join-Path -Path $PWD -ChildPath "dist\Fringe-Detection.exe"
+          if (Test-Path $exe) { Copy-Item $exe -Destination dist_zip -Force } else { Write-Error "Executable not found: $exe" }
+          Compress-Archive -Path (Join-Path $PWD 'dist_zip\*') -DestinationPath "fringe-detection-windows-${{ github.ref_name }}.zip" -Force
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Asset
+        uses: softprops/action-upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: fringe-detection-windows-${{ github.ref_name }}.zip
+          asset_name: fringe-detection-windows-${{ github.ref_name }}.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
