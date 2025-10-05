@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (optional). If left empty, the ref that triggered the manual run will be used.'
+        required: false
+        default: ''
 
 jobs:
   build-windows:
@@ -28,31 +34,50 @@ jobs:
         run: |
           pyinstaller --noconfirm --onefile --name "Fringe-Detection" even_illumination_app.py
 
+      - name: Show build output folders (diagnostics)
+        if: always()
+        shell: powershell
+        run: |
+          Write-Host "Contents of dist:\"
+          if (Test-Path dist) { Get-ChildItem -Path dist -Recurse | ForEach-Object { Write-Host $_.FullName } } else { Write-Host "No dist folder present" }
+          Write-Host "Contents of build:\"
+          if (Test-Path build) { Get-ChildItem -Path build -Recurse | ForEach-Object { Write-Host $_.FullName } } else { Write-Host "No build folder present" }
+
       - name: Prepare artifact
+        if: always()
         shell: powershell
         run: |
           New-Item -ItemType Directory -Path dist_zip -Force | Out-Null
-          $exe = Join-Path -Path $PWD -ChildPath "dist\Fringe-Detection.exe"
-          if (Test-Path $exe) { Copy-Item $exe -Destination dist_zip -Force } else { Write-Error "Executable not found: $exe" }
+          # Find any exe in dist
+          $exe = Get-ChildItem -Path dist -Filter *.exe -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($exe) {
+            Write-Host "Found exe: $($exe.FullName)"
+            Copy-Item $exe.FullName -Destination dist_zip -Force
+          } else {
+            Write-Host "No exe found in dist; copying entire dist folder contents instead"
+            if (Test-Path dist) { Copy-Item -Path (Join-Path $PWD 'dist\*') -Destination dist_zip -Recurse -Force } else { Write-Host "No dist folder to copy" }
+          }
+          # Also include the PyInstaller build logs if present
+          if (Test-Path build) { Copy-Item -Path (Join-Path $PWD 'build\*') -Destination dist_zip -Recurse -Force -ErrorAction SilentlyContinue }
           Compress-Archive -Path (Join-Path $PWD 'dist_zip\*') -DestinationPath "fringe-detection-windows-${{ github.ref_name }}.zip" -Force
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Check for ZIP and set env
+        if: always()
+        shell: powershell
+        run: |
+          $zip = Join-Path $PWD "fringe-detection-windows-${{ github.ref_name }}.zip"
+          if (Test-Path $zip) { Write-Host "Found ZIP: $zip"; "ZIP_EXISTS=true" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append } else { Write-Host "ZIP not found: $zip"; "ZIP_EXISTS=false" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
+
+      - name: Create Release and upload asset
+        if: env.ZIP_EXISTS == 'true'
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+          tag: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          files: "fringe-detection-windows-${{ github.ref_name }}.zip"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Release Asset
-        uses: softprops/action-upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: fringe-detection-windows-${{ github.ref_name }}.zip
-          asset_name: fringe-detection-windows-${{ github.ref_name }}.zip
-          asset_content_type: application/zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Skip release because ZIP missing
+        if: env.ZIP_EXISTS == 'false'
+        run: echo "ZIP not found; skipping release upload. Check the 'Show build output folders' and 'Prepare artifact' steps for diagnostics."
