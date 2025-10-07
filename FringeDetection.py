@@ -160,9 +160,6 @@ class EvenApp(tk.Tk):
         # --- Fringe detection controls (defaults tuned from notebook) ---
         ttk.Separator(fringe_ctrl, orient='horizontal').pack(fill='x', pady=6)
         ttk.Label(fringe_ctrl, text='Fringe detection').pack(anchor='w')
-        self.bin_method = tk.StringVar(value='Otsu')
-    cb_bin = ttk.Combobox(fringe_ctrl, textvariable=self.bin_method, values=['Otsu', 'Adaptive', 'Fixed'], width=10, state='readonly')
-    cb_bin.pack(anchor='w')
         self.bin_thresh = tk.IntVar(value=128)
         s_bin = self._make_slider_row(fringe_ctrl, 'Binary thresh', self.bin_thresh, 0, 255, is_int=True)
         self._slider_meta['Binary thresh'] = {'scale': s_bin, 'var': self.bin_thresh, 'is_int': True, 'frm': 0, 'to': 255}
@@ -314,7 +311,8 @@ class EvenApp(tk.Tk):
             out = cv2.cvtColor(b, cv2.COLOR_GRAY2BGR)
             self.last_result = out
 
-            method = self.bin_method.get() if hasattr(self, 'bin_method') else 'Otsu'
+            # Fringe binarization method is fixed to Otsu (no user selection)
+            method = 'Otsu'
             bw = binarize(enh, method=method, thresh=int(self.bin_thresh.get()) if hasattr(self, 'bin_thresh') else 128, blur=0)
             bw01 = (bw > 0).astype(np.uint8)
             opened = oriented_opening(bw01, length=int(self.k_len.get()) if hasattr(self, 'k_len') else 41,
