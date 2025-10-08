@@ -194,7 +194,13 @@ class EvenApp(tk.Tk):
         self.status.config(text=txt)
 
     def load_image_dialog(self, entry_widget):
-        p = filedialog.askopenfilename(filetypes=[('Images', '*.png;*.jpg;*.jpeg;*.tif;*.tiff')])
+        # Ensure the app is raised so the file dialog gets focus on macOS
+        try:
+            self.lift()
+        except Exception:
+            pass
+        p = filedialog.askopenfilename(parent=self, title='Select image', initialdir=os.path.expanduser('~'),
+                                       filetypes=[('Images', ('*.png', '*.jpg', '*.jpeg', '*.tif', '*.tiff'))])
         if not p:
             return
         entry_widget.delete(0, 'end')
