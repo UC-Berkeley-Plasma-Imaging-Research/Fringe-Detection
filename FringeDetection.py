@@ -7,6 +7,7 @@ import traceback
 from tkinter import filedialog, messagebox
 import tkinter as tk
 from tkinter import ttk
+import datetime
 
 import cv2
 import numpy as np
@@ -55,6 +56,10 @@ class EvenApp(tk.Tk):
         path_entry.pack(anchor='w')
         ttk.Button(ctrl, text='Browse & Load', command=lambda: self.load_image_dialog(path_entry)).pack(anchor='w', pady=4)
         ttk.Button(ctrl, text='Save result', command=self.save_result).pack(anchor='w', pady=4)
+
+        # Debug mode: logs file dialog actions and errors to fringe_debug.log
+        self.debug_var = tk.IntVar(value=0)
+        ttk.Checkbutton(ctrl, text='Debug mode (log)', variable=self.debug_var).pack(anchor='w', pady=4)
 
         ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
 
@@ -193,14 +198,29 @@ class EvenApp(tk.Tk):
     def set_status(self, txt):
         self.status.config(text=txt)
 
+    def _log_debug(self, msg):
+        try:
+            if getattr(self, 'debug_var', None) and int(self.debug_var.get()):
+                ts = datetime.datetime.now().isoformat()
+                with open('fringe_debug.log', 'a', encoding='utf-8') as f:
+                    f.write(f"{ts} - {msg}\n")
+        except Exception:
+            pass
+
     def load_image_dialog(self, entry_widget):
         # Ensure the app is raised so the file dialog gets focus on macOS
         try:
             self.lift()
         except Exception:
             pass
-        p = filedialog.askopenfilename(parent=self, title='Select image', initialdir=os.path.expanduser('~'),
-                                       filetypes=[('Images', ('*.png', '*.jpg', '*.jpeg', '*.tif', '*.tiff'))])
+        try:
+            self._log_debug('Opening file dialog')
+            p = filedialog.askopenfilename(parent=self, title='Select image', initialdir=os.path.expanduser('~'),
+                                           filetypes=[('Images', ('*.png', '*.jpg', '*.jpeg', '*.tif', '*.tiff'))])
+            self._log_debug(f'File dialog returned: {p}')
+        except Exception as e:
+            self._log_debug(f'File dialog exception: {e}')
+            raise
         if not p:
             return
         entry_widget.delete(0, 'end')
