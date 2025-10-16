@@ -39,14 +39,21 @@ class EvenApp(tk.Tk):
         self.enh_img = None
         self.lock = threading.Lock()
         self._after_id = None
+        
+        # Root layout: Notebook with two tabs: Detection and Editor
+        self.notebook = ttk.Notebook(self)
+        self.notebook.pack(fill='both', expand=True)
 
-        # controls frame
-        ctrl = ttk.Frame(self)
+        # Detection tab (existing UI)
+        detect_tab = ttk.Frame(self.notebook)
+        self.notebook.add(detect_tab, text='Detection')
+
+        # controls frame inside detection tab
+        ctrl = ttk.Frame(detect_tab)
         ctrl.pack(side='left', fill='y', padx=8, pady=8)
         ctrl.config(width=260)
         ctrl.pack_propagate(False)
 
-        
         ttk.Button(ctrl, text='Browse & Load', command=lambda: self.load_image_dialog()).pack(anchor='w', pady=4)
         ttk.Button(ctrl, text='Save Fringes as Binary', command=self.save_result).pack(anchor='w', pady=4)
 
@@ -83,10 +90,10 @@ class EvenApp(tk.Tk):
 
         ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
 
-        img_frame = ttk.Frame(self)
+        img_frame = ttk.Frame(detect_tab)
         img_frame.pack(side='left', fill='both', expand=True, padx=8, pady=8)
 
-        fringe_ctrl = ttk.Frame(self)
+        fringe_ctrl = ttk.Frame(detect_tab)
         fringe_ctrl.pack(side='right', fill='y', padx=8, pady=8)
         fringe_ctrl.config(width=260)
         fringe_ctrl.pack_propagate(False)
@@ -99,8 +106,6 @@ class EvenApp(tk.Tk):
         self._inner_window = self.viewport.create_window((0, 0), window=self.inner_frame, anchor='nw')
         # update scrollregion when inner_frame changes
         self.inner_frame.bind('<Configure>', lambda e: self.viewport.configure(scrollregion=self.viewport.bbox('all')))
-
-        
 
         # stacked canvases inside inner_frame
         self.illum_canvas = tk.Canvas(self.inner_frame, bg='black', highlightthickness=0)
@@ -155,6 +160,43 @@ class EvenApp(tk.Tk):
 
         # When the viewport changes size, rescale displayed images to fit width
         self.viewport.bind('<Configure>', self._on_viewport_configure)
+
+        # --- Editor tab ---
+        editor_tab = ttk.Frame(self.notebook)
+        self.notebook.add(editor_tab, text='Editor')
+
+        # Lazy import to avoid circulars
+        try:
+            from fringe_editor import FringeEditorFrame
+        except Exception:
+            FringeEditorFrame = None
+
+        self._editor_frame = None
+        if FringeEditorFrame is not None:
+            def on_apply(mask, _bg):
+                # Accept edited mask (0 black, 255 white) and refresh overlay view
+                try:
+                    self._binary_mask = mask.copy()
+                except Exception:
+                    self._binary_mask = mask
+                # If we have an enhanced image, rebuild the overlay to preview
+                if self.enh_img is not None:
+                    try:
+                        traced = (255 - self._binary_mask) // 255  # 1 on lines
+                        overlay = overlay_mask_on_gray(self.enh_img, traced.astype(np.uint8), line_alpha=1.0,
+                                                       bg_fade=float(self.k_bgfade.get()) if hasattr(self, 'k_bgfade') else 0.4,
+                                                       bg_to='white')
+                        self._update_illum_and_fringe(cv2.cvtColor(self.enh_img, cv2.COLOR_GRAY2BGR), overlay)
+                        self.set_status('Applied edited mask from Editor')
+                    except Exception:
+                        pass
+
+            def on_close():
+                # optional future: prompt to apply/discard
+                pass
+
+            self._editor_frame = FringeEditorFrame(editor_tab, on_apply=on_apply, on_close=on_close)
+            self._editor_frame.pack(fill='both', expand=True)
 
         # start
         self.protocol('WM_DELETE_WINDOW', self.on_close)
@@ -344,6 +386,13 @@ class EvenApp(tk.Tk):
             illum_bgr = cv2.cvtColor(enh, cv2.COLOR_GRAY2BGR) if enh.ndim == 2 else enh
 
             self.after(0, lambda: self._update_illum_and_fringe(illum_bgr, overlay))
+            # Push latest data into editor if it's open and empty
+            try:
+                if self._editor_frame is not None and self._editor_frame.get_mask() is None:
+                    # Provide current binary result to editor tab for manual tweaks
+                    self._editor_frame.set_data(self._binary_mask)
+            except Exception:
+                pass
         except Exception:
             traceback.print_exc()
             self.after(0, lambda: messagebox.showerror('Render error', 'An error occurred during rendering'))
