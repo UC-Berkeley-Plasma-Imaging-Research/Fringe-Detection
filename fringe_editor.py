@@ -18,12 +18,12 @@ from tkinter import filedialog, messagebox, ttk
 import cv2
 import numpy as np
 from PIL import Image, ImageTk, ImageOps
+from skimage.morphology import skeletonize
 
 
 class FringeEditorFrame(tk.Frame):
     """
     Embeddable fringe editor as a tkinter Frame.
-    - on_apply(mask, background) callback will be invoked when user clicks 'Apply to App'
     - on_close() callback will be invoked when user clicks 'Close' (when embedded)
     """
     def __init__(self, master=None, on_apply=None, on_close=None):
@@ -43,53 +43,111 @@ class FringeEditorFrame(tk.Frame):
         self._zoom = 1.0        # user zoom multiplier
         self._scale = 1.0       # effective scale = base_scale * zoom
         self._offset = None     # (x0, y0) of image top-left on canvas
+        # Component labeling cache for stable colors
+        self._labels_cache = None
+        self._labels_dirty = True
 
-        # Toolbar
-        toolbar = ttk.Frame(self)
-        toolbar.pack(side="top", fill="x")
+        # Toolbar container (packs across the top)
+        self.toolbar = ttk.Frame(self)
+        self.toolbar.pack(side="top", fill="x")
+        self._toolbar_items = []  # keep children to flow-layout with grid
 
-        ttk.Button(toolbar, text="Open Binary", command=self.open_binary).pack(side="left", padx=4, pady=4)
-        ttk.Button(toolbar, text="Open Background", command=self.open_background).pack(side="left", padx=4, pady=4)
-        ttk.Button(toolbar, text="Save As…", command=self.save_binary).pack(side="left", padx=4, pady=4)
-        ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=6)
+        def add(item):
+            self._toolbar_items.append(item)
+            return item
 
+        # File actions
+        add(ttk.Button(self.toolbar, text="Open Binary", command=self.open_binary))
+        add(ttk.Button(self.toolbar, text="Open Background", command=self.open_background))
+        add(ttk.Button(self.toolbar, text="Save As…", command=self.save_binary))
+        add(ttk.Separator(self.toolbar, orient="vertical"))
+
+        # Modes
         self.mode_var = tk.StringVar(value="add")
-        ttk.Radiobutton(toolbar, text="Add Black", value="add", variable=self.mode_var).pack(side="left", padx=4)
-        ttk.Radiobutton(toolbar, text="Remove Black", value="erase", variable=self.mode_var).pack(side="left", padx=4)
+        add(ttk.Radiobutton(self.toolbar, text="Add Black", value="add", variable=self.mode_var))
+        add(ttk.Radiobutton(self.toolbar, text="Remove Black", value="erase", variable=self.mode_var))
+        add(ttk.Separator(self.toolbar, orient="vertical"))
 
-        ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=6)
-        # Brush size is controlled via Ctrl+MouseWheel only; keep an internal variable
-        # (no visible slider per user request)
+        # Brush (no visible slider, but keep var)
         self.brush_var = tk.DoubleVar(value=10.0)
 
-        # Background brightness control
-        ttk.Label(toolbar, text="BG bright").pack(side="left", padx=(8, 2))
+        # Background brightness
+        add(ttk.Label(self.toolbar, text="BG bright"))
         self.bg_brightness = tk.DoubleVar(value=1.0)
-        self.bg_scale = ttk.Scale(
-            toolbar,
-            from_=0.0,
-            to=1.0,
-            orient="horizontal",
-            variable=self.bg_brightness,
-            command=self._on_bg_brightness_changed,
-        )
-        self.bg_scale.pack(side="left", padx=4)
+        self.bg_scale = ttk.Scale(self.toolbar, from_=0.0, to=1.0, orient="horizontal",
+                                  variable=self.bg_brightness, command=self._on_bg_brightness_changed)
+        add(self.bg_scale)
+        add(ttk.Separator(self.toolbar, orient="vertical"))
 
-        # Blue overlay toggle for better visibility of black regions
-        self.red_overlay_var = tk.BooleanVar(value=False)
-        self.red_overlay_btn = ttk.Checkbutton(
-            toolbar,
-            text="Blue overlay",
-            variable=self.red_overlay_var,
-            command=self._on_red_overlay_changed,
-        )
-        self.red_overlay_btn.pack(side="left", padx=(8, 4))
+        # Angle/Link controls
+        add(ttk.Label(self.toolbar, text="Angle°"))
+        self.angle_deg_var = tk.IntVar(value=40)
+        try:
+            ang_spin = tk.Spinbox(self.toolbar, from_=0, to=45, width=4, textvariable=self.angle_deg_var)
+        except Exception:
+            ang_spin = tk.Entry(self.toolbar, width=4, textvariable=self.angle_deg_var)
+        add(ang_spin)
 
-        ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=6)
-        ttk.Button(toolbar, text="Connect gaps", command=self._connect_gaps).pack(side="left", padx=4)
-        ttk.Button(toolbar, text="Undo", command=self.undo).pack(side="left", padx=4)
-        ttk.Button(toolbar, text="Apply to App", command=self._handle_apply).pack(side="left", padx=4)
-        ttk.Button(toolbar, text="Close", command=self._handle_close).pack(side="left", padx=4)
+        add(ttk.Label(self.toolbar, text="Link tol"))
+        self.link_tol_var = tk.IntVar(value=10)
+        try:
+            link_spin = tk.Spinbox(self.toolbar, from_=1, to=300, width=4, textvariable=self.link_tol_var)
+        except Exception:
+            link_spin = tk.Entry(self.toolbar, width=4, textvariable=self.link_tol_var)
+        add(link_spin)
+
+        # Quick adjust: halve angle and double link tolerance
+        add(ttk.Button(self.toolbar, text="½ Angle, 2× Tol", command=self._halve_angle_double_tol))
+        add(ttk.Separator(self.toolbar, orient="vertical"))
+
+        # Visualization: color connected components
+        self.show_components_var = tk.BooleanVar(value=False)
+        add(ttk.Checkbutton(self.toolbar, text="Color comps", variable=self.show_components_var,
+                             command=lambda: self._refresh_display(False)))
+
+        add(ttk.Button(self.toolbar, text="Link endpoints", command=self._link_endpoints))
+        add(ttk.Button(self.toolbar, text="Undo", command=self.undo))
+        add(ttk.Button(self.toolbar, text="Close", command=self._handle_close))
+
+        # Flow layout using grid: reflow on resize
+        def _layout_toolbar(event=None):
+            if not getattr(self, '_toolbar_items', None):
+                return
+            try:
+                self.update_idletasks()
+                avail = max(1, self.toolbar.winfo_width())
+            except Exception:
+                avail = 800
+            # clear
+            for w in self._toolbar_items:
+                try:
+                    w.grid_forget()
+                except Exception:
+                    pass
+            row = 0
+            col = 0
+            cur_w = 0
+            pad_x = 6
+            for w in self._toolbar_items:
+                try:
+                    req = max(1, w.winfo_reqwidth())
+                except Exception:
+                    req = 60
+                # separators should be small but tall
+                sticky = 'w'
+                if isinstance(w, ttk.Separator):
+                    sticky = 'ns'
+                    req = max(6, min(req, 6))
+                if col > 0 and (cur_w + req + pad_x) > avail:
+                    row += 1
+                    col = 0
+                    cur_w = 0
+                w.grid(row=row, column=col, padx=3, pady=2, sticky=sticky)
+                cur_w += req + pad_x
+                col += 1
+
+        self.toolbar.bind('<Configure>', _layout_toolbar)
+        _layout_toolbar()
 
         # Status bar
         self.status = ttk.Label(self, text="Open a binary image (0/255) to edit…", anchor="w")
@@ -117,6 +175,10 @@ class FringeEditorFrame(tk.Frame):
         self._bind_to_toplevel("<Control-z>", lambda e: self.undo())
         self._bind_to_toplevel("<Key-a>", lambda e: self._set_mode("add"))
         self._bind_to_toplevel("<Key-e>", lambda e: self._set_mode("erase"))
+        # Global painting support: allow edits when cursor is outside the canvas
+        self._bind_to_toplevel("<Button-1>", self._on_global_paint_start)
+        self._bind_to_toplevel("<B1-Motion>", self._on_global_paint_move)
+        self._bind_to_toplevel("<ButtonRelease-1>", self._on_global_paint_end)
 
         # Stroke and cursor overlay state
         self._painting = False
@@ -159,6 +221,7 @@ class FringeEditorFrame(tk.Frame):
         self._zoom = 1.0
         self._base_scale = 1.0
         self._offset = None
+        self._labels_dirty = True
         self._refresh_display(force_recompute_base=True)
 
     def get_mask(self) -> np.ndarray | None:
@@ -175,13 +238,7 @@ class FringeEditorFrame(tk.Frame):
             except Exception:
                 pass
 
-    def _handle_apply(self):
-        if callable(self._on_apply) and self.mask is not None:
-            try:
-                self._on_apply(self.mask.copy(), None if self._bg is None else self._bg.copy())
-                self.set_status("Applied to app")
-            except Exception:
-                messagebox.showerror("Apply error", "Failed to apply edited mask to the app")
+    
 
     def _handle_close(self):
         if callable(self._on_close):
@@ -241,10 +298,10 @@ class FringeEditorFrame(tk.Frame):
         self._zoom = 1.0
         self._base_scale = 1.0
         self._offset = None
+        self._labels_dirty = True
         self._refresh_display(force_recompute_base=True)
 
-    def _on_red_overlay_changed(self):
-        self._refresh_display(False)
+    
 
     def open_background(self):
         path = filedialog.askopenfilename(
@@ -306,46 +363,136 @@ class FringeEditorFrame(tk.Frame):
             return
         try:
             self.mask = self._undo_stack.pop()
+            self._labels_dirty = True
             self._refresh_display()
             self.set_status("Undid last stroke")
         except Exception:
             pass
 
-    def _connect_gaps(self):
-        """Bridge small gaps in the binary mask using morphological closing.
-        Operates on the in-editor mask (0=black fringe, 255=white background).
+    def _halve_angle_double_tol(self):
+        try:
+            ang = int(self.angle_deg_var.get()) if hasattr(self, 'angle_deg_var') else 0
+        except Exception:
+            ang = 0
+        ang = max(0, ang // 2)
+        try:
+            tol = int(self.link_tol_var.get()) if hasattr(self, 'link_tol_var') else 1
+        except Exception:
+            tol = 1
+        tol = max(1, min(300, tol * 2))
+        try:
+            self.angle_deg_var.set(ang)
+            self.link_tol_var.set(tol)
+        except Exception:
+            pass
+        self.set_status(f"Angle set to {ang}°, Link tol set to {tol}px")
+        # no need to rerender immediately; affects only link operation
+
+    
+
+    def _link_endpoints(self):
+        """Skeletonize -> detect endpoints -> link nearest pairs within tolerance.
+        Optionally respects Angle° as a max deviation from horizontal.
         """
         if self.mask is None:
             return
         try:
-            # Save for undo
+            R = int(self.link_tol_var.get()) if hasattr(self, 'link_tol_var') else 12
+            R = max(1, min(300, R))
+            try:
+                theta_deg = int(self.angle_deg_var.get()) if hasattr(self, 'angle_deg_var') else 0
+            except Exception:
+                theta_deg = 0
+            import math
+            tan_theta = math.tan(math.radians(max(0, min(89, theta_deg)))) if theta_deg > 0 else None
+
+            # Save undo
             self._undo_stack.append(self.mask.copy())
             if len(self._undo_stack) > 20:
                 self._undo_stack = self._undo_stack[-20:]
 
-            # Convert to 0/1 with 1 indicating a fringe pixel
+            # 1 where fringe exists
             bw = (self.mask == 0).astype(np.uint8)
+            if bw.max() == 0:
+                return
+            # Skeletonize
+            skel = skeletonize(bw > 0).astype(np.uint8)
 
-            # Close tiny gaps (diagonal and 1px breaks)
-            k_small = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-            bw = cv2.morphologyEx(bw, cv2.MORPH_CLOSE, k_small, iterations=1)
+            # Endpoints: exactly one 8-neighbor
+            ones3 = np.ones((3, 3), np.uint8)
+            nbr = cv2.filter2D(skel, -1, ones3, borderType=cv2.BORDER_CONSTANT)
+            endpoints = (skel == 1) & (nbr == 2)  # includes self
+            ys, xs = np.where(endpoints)
+            n = len(xs)
+            if n < 2:
+                self.set_status("No endpoints to link")
+                return
 
-            # Bridge short horizontal gaps (fringes are often horizontal)
-            k_h = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 1))
-            bw = cv2.morphologyEx(bw, cv2.MORPH_CLOSE, k_h, iterations=1)
+            # Connected labels to avoid linking inside one component
+            try:
+                _, labels = cv2.connectedComponents(skel, connectivity=8)
+            except Exception:
+                labels = None
 
-            # Bridge short diagonal gaps using custom 5x5 diagonal kernels
-            k_d1 = np.eye(5, dtype=np.uint8)
-            k_d2 = np.fliplr(k_d1)
-            bw = cv2.morphologyEx(bw, cv2.MORPH_CLOSE, k_d1, iterations=1)
-            bw = cv2.morphologyEx(bw, cv2.MORPH_CLOSE, k_d2, iterations=1)
+            used = set()
+            links = 0
+            h, w = bw.shape
+            for i in range(n):
+                if i in used:
+                    continue
+                x0, y0 = int(xs[i]), int(ys[i])
+                # search window
+                x_min = max(0, x0 - R)
+                x_max = min(w - 1, x0 + R)
+                y_min = max(0, y0 - R)
+                y_max = min(h - 1, y0 + R)
 
-            # Convert back to 0/255 mask: 1 (fringe) -> 0 black, 0 -> 255 white
+                best_j = None
+                best_d2 = None
+                for j in range(n):
+                    if j == i or j in used:
+                        continue
+                    x1, y1 = int(xs[j]), int(ys[j])
+                    if x1 < x_min or x1 > x_max or y1 < y_min or y1 > y_max:
+                        continue
+                    dx = x1 - x0
+                    dy = y1 - y0
+                    d2 = dx * dx + dy * dy
+                    if d2 > R * R:
+                        continue
+                    if tan_theta is not None:
+                        # angle to horizontal check
+                        if dx == 0:
+                            continue
+                        if abs(dy) > tan_theta * abs(dx):
+                            continue
+                    if labels is not None:
+                        lid = int(labels[y0, x0])
+                        rid = int(labels[y1, x1])
+                        if lid > 0 and rid > 0 and lid == rid:
+                            continue
+                    if best_d2 is None or d2 < best_d2:
+                        best_d2 = d2
+                        best_j = j
+
+                if best_j is not None:
+                    x1, y1 = int(xs[best_j]), int(ys[best_j])
+                    try:
+                        cv2.line(bw, (x0, y0), (x1, y1), 1, 1)
+                        used.add(i)
+                        used.add(best_j)
+                        links += 1
+                    except Exception:
+                        pass
+
+            # Optionally skeletonize again to keep 1px thickness
+            bw = skeletonize(bw > 0).astype(np.uint8)
             self.mask = np.where(bw > 0, 0, 255).astype(np.uint8)
+            self._labels_dirty = True
             self._refresh_display()
-            self.set_status("Connected gaps (3x3 + horiz 7 + diagonals)")
+            self.set_status(f"Linked {links} endpoint pairs (tol {R}px, angle ±{theta_deg}°)")
         except Exception:
-            messagebox.showerror("Connect gaps", "Failed to connect gaps on the current mask")
+            messagebox.showerror("Link endpoints", "Failed to link endpoints on the current mask")
 
     # -------------- Rendering & transforms --------------
     def _on_canvas_configure(self, event=None):
@@ -416,7 +563,38 @@ class FringeEditorFrame(tk.Frame):
 
         # Build preview for the cropped region
         region_mask = preview_mask[iy0:iy1, ix0:ix1]
-        if self._bg is not None:
+        # Optional: visualize connected components with stable colors using full-image labels
+        colorize = bool(getattr(self, 'show_components_var', tk.BooleanVar(value=False)).get())
+        comp_rgb = None
+        if colorize and self.mask is not None:
+            try:
+                if self._labels_cache is None or self._labels_dirty:
+                    bw_full = (self.mask == 0).astype(np.uint8)
+                    num, labels_full = cv2.connectedComponents(bw_full, connectivity=8)
+                    # Generate deterministic colors for labels 0..num-1
+                    idx = np.arange(num, dtype=np.uint32)
+                    x = (idx * np.uint32(2654435761)) & np.uint32(0xFFFFFFFF)
+                    r = (x & np.uint32(0xFF)).astype(np.uint8)
+                    g = ((x >> np.uint32(8)) & np.uint32(0xFF)).astype(np.uint8)
+                    b = ((x >> np.uint32(16)) & np.uint32(0xFF)).astype(np.uint8)
+                    colors = np.stack([r, g, b], axis=1)
+                    # Avoid very dark colors
+                    colors = np.maximum(colors, 40)
+                    colors[0] = (255, 255, 255)  # background
+                    self._labels_cache = (labels_full, colors)
+                    self._labels_dirty = False
+                labels_full, colors = self._labels_cache
+                labels_crop = labels_full[iy0:iy1, ix0:ix1]
+                comp_rgb = colors[labels_crop]
+            except Exception:
+                comp_rgb = None
+        if comp_rgb is not None:
+            # Show colored components directly
+            try:
+                pil_img = Image.fromarray(comp_rgb, mode="RGB").resize((dst_w, dst_h), Image.NEAREST)
+            except Exception:
+                pil_img = Image.fromarray(region_mask, mode="L").resize((dst_w, dst_h), Image.NEAREST)
+        elif self._bg is not None:
             try:
                 bg_region = self._bg[iy0:iy1, ix0:ix1]
                 bg_img = Image.fromarray(bg_region, mode="L").resize((dst_w, dst_h), Image.BILINEAR)
@@ -428,30 +606,16 @@ class FringeEditorFrame(tk.Frame):
                 b = max(0.0, min(1.0, b))
                 white_L = Image.new("L", (dst_w, dst_h), 255)
                 blended = Image.blend(white_L, bg_img, b)
-                if bool(self.red_overlay_var.get()):
-                    result = blended.convert("RGB")
-                    blue_img = Image.new("RGB", (dst_w, dst_h), (0, 200, 255))
-                    mask_inv = ImageOps.invert(mask_img)
-                    result.paste(blue_img, (0, 0), mask_inv)
-                    pil_img = result
-                else:
-                    result = blended.copy()
-                    black_L = Image.new("L", (dst_w, dst_h), 0)
-                    mask_inv = ImageOps.invert(mask_img)
-                    result.paste(black_L, (0, 0), mask_inv)
-                    pil_img = result
+                result = blended.copy()
+                black_L = Image.new("L", (dst_w, dst_h), 0)
+                mask_inv = ImageOps.invert(mask_img)
+                result.paste(black_L, (0, 0), mask_inv)
+                pil_img = result
             else:
                 pil_img = mask_img
         else:
             mask_img = Image.fromarray(region_mask, mode="L").resize((dst_w, dst_h), Image.NEAREST)
-            if bool(self.red_overlay_var.get()):
-                base = Image.new("RGB", (dst_w, dst_h), (255, 255, 255))
-                blue_img = Image.new("RGB", (dst_w, dst_h), (0, 200, 255))
-                mask_inv = ImageOps.invert(mask_img)
-                base.paste(blue_img, (0, 0), mask_inv)
-                pil_img = base
-            else:
-                pil_img = mask_img
+            pil_img = mask_img
 
         self._photo = ImageTk.PhotoImage(pil_img)
         self.canvas.create_image(vx0, vy0, anchor="nw", image=self._photo)
@@ -494,6 +658,27 @@ class FringeEditorFrame(tk.Frame):
         circle = (xx - xi) ** 2 + (yy - yi) ** 2 <= (r * r)
         sub = self.mask[y_min:y_max + 1, x_min:x_max + 1]
         sub[circle] = color
+        self._labels_dirty = True
+
+    def _apply_brush_line(self, x0, y0, x1, y1):
+        """Stamp the brush along a line segment to avoid gaps when moving fast."""
+        if self.mask is None:
+            return
+        r = float(max(0.1, self.brush_var.get()))
+        dx = float(x1 - x0)
+        dy = float(y1 - y0)
+        dist = float(np.hypot(dx, dy))
+        # step length <= r * 0.5 to ensure overlap; at least 1px to be safe
+        step_len = max(1.0, r * 0.5)
+        steps = int(max(1, np.ceil(dist / step_len)))
+        if steps <= 1:
+            self._apply_brush(x1, y1)
+            return
+        for i in range(1, steps + 1):
+            t = i / float(steps)
+            xi = x0 + dx * t
+            yi = y0 + dy * t
+            self._apply_brush(xi, yi)
 
     def _on_paint_start(self, event):
         if self.mask is None:
@@ -505,9 +690,13 @@ class FringeEditorFrame(tk.Frame):
         except Exception:
             pass
 
-        pt = self._canvas_to_image_coords(event.x, event.y)
+        pt = self._canvas_to_image_coords_f(event.x, event.y)
         if pt is not None:
             xi, yi = pt
+            try:
+                self._last_paint_xy = (xi, yi)
+            except Exception:
+                self._last_paint_xy = None
             self._apply_brush(xi, yi)
             self._refresh_display()
             self._painting = True
@@ -517,15 +706,99 @@ class FringeEditorFrame(tk.Frame):
     def _on_paint_move(self, event):
         if self.mask is None or not self._painting:
             return
-        pt = self._canvas_to_image_coords(event.x, event.y)
+        pt = self._canvas_to_image_coords_f(event.x, event.y)
         if pt is not None:
             xi, yi = pt
-            self._apply_brush(xi, yi)
+            lp = getattr(self, "_last_paint_xy", None)
+            if lp is None:
+                self._apply_brush(xi, yi)
+            else:
+                self._apply_brush_line(lp[0], lp[1], xi, yi)
+            self._last_paint_xy = (xi, yi)
             self._refresh_display()
         self._last_mouse_pos = (event.x, event.y)
         self._update_cursor_circle(event.x, event.y)
 
     def _on_paint_end(self, event):
+        self._painting = False
+        self._last_paint_xy = None
+
+    def _canvas_to_image_coords_f(self, x_canvas, y_canvas):
+        if self.mask is None:
+            return None
+        x0, y0 = getattr(self, "_img_topleft", (0, 0))
+        scale = self._scale if self._scale > 0 else 1.0
+        xi = (x_canvas - x0) / scale
+        yi = (y_canvas - y0) / scale
+        h, w = self.mask.shape[:2]
+        if xi < 0 or yi < 0 or xi >= w or yi >= h:
+            return None
+        return xi, yi
+
+    # -------------- Global paint (outside canvas) --------------
+    def _global_event_to_image_coords(self, event):
+        if self.mask is None:
+            return None
+        try:
+            x_c = int(event.x_root) - int(self.canvas.winfo_rootx())
+            y_c = int(event.y_root) - int(self.canvas.winfo_rooty())
+        except Exception:
+            return None
+        # Allow painting if the brush overlaps the image even if center is outside
+        x0, y0 = getattr(self, "_img_topleft", (0, 0))
+        scale = self._scale if self._scale > 0 else 1.0
+        xi = (x_c - x0) / scale
+        yi = (y_c - y0) / scale
+        return xi, yi
+
+    def _on_global_paint_start(self, event):
+        if self.mask is None:
+            return
+        # begin an undo snapshot
+        try:
+            self._undo_stack.append(self.mask.copy())
+            if len(self._undo_stack) > 20:
+                self._undo_stack = self._undo_stack[-20:]
+        except Exception:
+            pass
+        self._painting = True
+        self._on_global_paint_move(event)
+
+    def _on_global_paint_move(self, event):
+        if self.mask is None or not self._painting:
+            return
+        pt = self._global_event_to_image_coords(event)
+        if pt is None:
+            return
+        xi_f, yi_f = pt
+        # If brush overlaps the image, apply brush using float center and clipping
+        try:
+            r = float(max(0.1, self.brush_var.get()))
+        except Exception:
+            r = 1.0
+        h, w = self.mask.shape[:2]
+        # Compute AABB intersection test between brush circle and image bounds
+        if (xi_f + r) < 0 or (yi_f + r) < 0 or (xi_f - r) > (w - 1) or (yi_f - r) > (h - 1):
+            # no overlap
+            return
+        # Apply brush with float center
+        xi = float(xi_f)
+        yi = float(yi_f)
+        # integer bounds for the affected box (will clip inside _apply_brush-like logic)
+        y_min = int(max(0, np.floor(yi - r)))
+        y_max = int(min(h - 1, np.ceil(yi + r)))
+        x_min = int(max(0, np.floor(xi - r)))
+        x_max = int(min(w - 1, np.ceil(xi + r)))
+        if y_max >= y_min and x_max >= x_min:
+            yy, xx = np.ogrid[y_min:y_max + 1, x_min:x_max + 1]
+            circle = (xx - xi) ** 2 + (yy - yi) ** 2 <= (r * r)
+            color = 0 if self.mode_var.get() == "add" else 255
+            sub = self.mask[y_min:y_max + 1, x_min:x_max + 1]
+            sub[circle] = color
+            self._labels_dirty = True
+            self._refresh_display()
+
+    def _on_global_paint_end(self, event):
         self._painting = False
 
     # -------------- Right-click panning --------------
