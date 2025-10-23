@@ -45,8 +45,18 @@ def oriented_opening(bw01, length, thickness, max_angle=8.0, step=2.0):
 
 
 def overlay_mask_on_gray(gray, mask01, line_alpha=0.85, bg_fade=0.4, bg_to='white', line_color=(255, 0, 0)):
-    # gray: uint8, mask01: 0/1 uint8
-    base = gray.astype(np.float32)
+    """Overlay a 0/1 mask onto a grayscale image.
+    Accepts gray as uint8 (or other types, normalized to uint8) and mask01 as 0/1 (bool or uint8).
+    Handles minor size mismatches by resizing mask.
+    """
+    # Normalize grayscale to uint8
+    g = gray
+    if g.ndim == 3:
+        # Convert color to gray if needed
+        g = cv2.cvtColor(g, cv2.COLOR_BGR2GRAY)
+    if g.dtype != np.uint8:
+        g = cv2.normalize(g, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX).astype(np.uint8)
+    base = g.astype(np.float32)
     target = 255.0 if bg_to == 'white' else 0.0
     base = (1.0 - bg_fade) * base + bg_fade * target
     base = np.clip(base, 0, 255).astype(np.uint8)
@@ -56,7 +66,14 @@ def overlay_mask_on_gray(gray, mask01, line_alpha=0.85, bg_fade=0.4, bg_to='whit
     color[..., 0] = line_color[2]
     color[..., 1] = line_color[1]
     color[..., 2] = line_color[0]
-    m = mask01.astype(bool)
+    m = mask01
+    if m.dtype != np.uint8 and m.dtype != np.bool_:
+        m = (m > 0).astype(np.uint8)
+    if m.dtype != np.bool_:
+        m = m.astype(bool)
+    # Resize mask to base size if needed
+    if m.shape != base.shape[:2]:
+        m = cv2.resize(m.astype(np.uint8), (base.shape[1], base.shape[0]), interpolation=cv2.INTER_NEAREST).astype(bool)
     out = base_bgr.copy()
     out[m] = (line_alpha * color[m] + (1.0 - line_alpha) * base_bgr[m]).astype(np.uint8)
     return out

@@ -17,12 +17,14 @@ from skimage.morphology import skeletonize, remove_small_objects
 from fringe_detection import pipeline_shading_sauvola, read_gray
 from fringe_detection import binarize, oriented_opening, overlay_mask_on_gray
 from fringe_detection import make_slider_row, to_photoimage_from_bgr_with_scale
+from crop_overlay import CropMixin
+from mixins.viewport_rendering import ViewportRenderingMixin
 
 
 # passthrough helper removed
 
 
-class EvenApp(tk.Tk):
+class EvenApp(ViewportRenderingMixin, CropMixin, tk.Tk):
     def _make_slider_row(self, parent, label_text, var, frm, to, resolution=None, is_int=False, fmt=None, command=None):
         if command is None:
             command = self.on_param_change
@@ -32,6 +34,13 @@ class EvenApp(tk.Tk):
         super().__init__()
         self.title('Even Illumination - Fringe Extraction')
         self.geometry('1100x700')
+        try:
+            # Bring window to front briefly so it isn't hidden behind others
+            self.after(100, self.lift)
+            self.after(120, lambda: self.attributes('-topmost', True))
+            self.after(700, lambda: self.attributes('-topmost', False))
+        except Exception:
+            pass
 
         # state
         self.src_img = None
@@ -147,9 +156,10 @@ class EvenApp(tk.Tk):
 
         def _bind_panning(widget):
             try:
-                widget.bind('<Button-1>', self._on_pan_start)
-                widget.bind('<B1-Motion>', self._on_pan_move)
-                widget.bind('<ButtonRelease-1>', self._on_pan_end)
+                # Use right mouse button for panning
+                widget.bind('<Button-3>', self._on_pan_start)
+                widget.bind('<B3-Motion>', self._on_pan_move)
+                widget.bind('<ButtonRelease-3>', self._on_pan_end)
             except Exception:
                 pass
 
@@ -160,6 +170,46 @@ class EvenApp(tk.Tk):
 
         # When the viewport changes size, rescale displayed images to fit width
         self.viewport.bind('<Configure>', self._on_viewport_configure)
+
+        # --- Crop feature state & UI ---
+        self._crop_mode = False
+        self._crop_rect = None  # (x, y, w, h) in image coordinates
+        self._crop_drag = None  # None | 'move' | 'tl' | 'tr' | 'bl' | 'br'
+        self._crop_last = None  # last mouse pos in image coords (float)
+        self._crop_items = []   # canvas item ids for overlay
+        self._crop_handle_px = 12  # size in canvas pixels (not scaled by zoom)
+
+        ttk.Separator(fringe_ctrl, orient='horizontal').pack(fill='x', pady=(6, 6))
+        ttk.Label(fringe_ctrl, text='Crop').pack(anchor='w')
+        btns = ttk.Frame(fringe_ctrl)
+        btns.pack(anchor='w', pady=(2, 4))
+        ttk.Button(btns, text='Start crop', command=self._start_crop_mode).pack(side='left', padx=(0, 6))
+        ttk.Button(btns, text='Apply', command=self._apply_crop).pack(side='left', padx=(0, 6))
+        ttk.Button(btns, text='Cancel', command=self._cancel_crop_mode).pack(side='left')
+
+        # X/Y/W/H controls
+        crop_form = ttk.Frame(fringe_ctrl)
+        crop_form.pack(fill='x', pady=(2, 6))
+        self._crop_x = tk.IntVar(value=0)
+        self._crop_y = tk.IntVar(value=0)
+        self._crop_w = tk.IntVar(value=0)
+        self._crop_h = tk.IntVar(value=0)
+        def row(lbl, var):
+            fr = ttk.Frame(crop_form)
+            fr.pack(fill='x', pady=1)
+            ttk.Label(fr, text=lbl, width=6).pack(side='left')
+            try:
+                sp = tk.Spinbox(fr, from_=0, to=99999, width=8, textvariable=var)
+            except Exception:
+                sp = ttk.Entry(fr, width=10, textvariable=var)
+            sp.pack(side='left')
+            return sp
+        self._crop_x_sp = row('X', self._crop_x)
+        self._crop_y_sp = row('Y', self._crop_y)
+        self._crop_w_sp = row('W', self._crop_w)
+        self._crop_h_sp = row('H', self._crop_h)
+        ttk.Button(crop_form, text='Update rect from fields', command=self._update_rect_from_fields).pack(anchor='w', pady=(3, 0))
+        ttk.Button(crop_form, text='Save crop to TXT', command=self._save_crop_dims).pack(anchor='w', pady=(4, 0))
 
         # --- Editor tab ---
         editor_tab = ttk.Frame(self.notebook)
@@ -511,6 +561,11 @@ class EvenApp(tk.Tk):
                     self._restore_scroll_after_update(pre_x_px, pre_y_px)
                 except Exception:
                     pass
+                # Redraw crop overlay if active (after images updated)
+                try:
+                    self._redraw_crop_overlay()
+                except Exception:
+                    pass
             except Exception:
                 pass
 
@@ -518,267 +573,25 @@ class EvenApp(tk.Tk):
 
     
 
-    def _on_mousewheel(self, event):
-        try:
-            # Zoom in/out at mouse position (like Google Maps)
-            delta = int(event.delta / 120) if hasattr(event, 'delta') else 0
-            
-            # Calculate zoom factor (1.1 for zoom in, 0.9 for zoom out)
-            zoom_factor = 1.1 if delta > 0 else 0.9
-            old_zoom = self._zoom_level
-            new_zoom = old_zoom * zoom_factor
-            
-            # Clamp zoom level between 0.1x and 10x
-            new_zoom = max(0.1, min(10.0, new_zoom))
-            
-            if new_zoom != old_zoom:
-                # Compute mouse position relative to the viewport (not the child widget)
-                try:
-                    mouse_x = int(event.x_root) - int(self.viewport.winfo_rootx())
-                    mouse_y = int(event.y_root) - int(self.viewport.winfo_rooty())
-                except Exception:
-                    mouse_x = self.viewport.winfo_width() // 2
-                    mouse_y = self.viewport.winfo_height() // 2
-
-                # Current left/top in canvas pixels at the viewport edges
-                left_px_before = float(self.viewport.canvasx(0))
-                top_px_before = float(self.viewport.canvasy(0))
-
-                # Absolute canvas coordinate under mouse before zoom
-                canvas_x_before = left_px_before + float(mouse_x)
-                canvas_y_before = top_px_before + float(mouse_y)
-                
-                
-                
-                # Apply new zoom
-                zoom_ratio = new_zoom / old_zoom
-                self._zoom_level = new_zoom
-                
-                # Rescale images with new zoom
-                self._rescale_display_images()
-                
-                # Update scroll region and sizes after rescale
-                self.viewport.update_idletasks()
-
-                # Scale the absolute canvas coordinates by zoom ratio
-                canvas_x_after = canvas_x_before * zoom_ratio
-                canvas_y_after = canvas_y_before * zoom_ratio
-                
-                # Calculate new scroll position to keep the same point under mouse
-                bbox_after = self.viewport.bbox('all')
-                if bbox_after:
-                    bbox_width = float(bbox_after[2] - bbox_after[0])
-                    bbox_height = float(bbox_after[3] - bbox_after[1])
-                    vp_w = max(1.0, float(self.viewport.winfo_width()))
-                    vp_h = max(1.0, float(self.viewport.winfo_height()))
-
-                    # Desired left/top after zoom so that canvas_x_after is under mouse
-                    new_left_px = canvas_x_after - float(mouse_x)
-                    new_top_px = canvas_y_after - float(mouse_y)
-
-                    # Clamp to scrollable range [0, content - viewport]
-                    max_left = max(0.0, bbox_width - vp_w)
-                    max_top = max(0.0, bbox_height - vp_h)
-                    new_left_px = min(max(new_left_px, 0.0), max_left)
-                    new_top_px = min(max(new_top_px, 0.0), max_top)
-
-                    # Convert to fractions of total content width/height expected by xview_moveto/yview_moveto
-                    new_x_fraction = new_left_px / bbox_width if bbox_width > 0 else 0.0
-                    new_y_fraction = new_top_px / bbox_height if bbox_height > 0 else 0.0
-
-                    
-
-                    # Apply scroll positions (clamp to valid range)
-                    self.viewport.xview_moveto(max(0.0, min(1.0, new_x_fraction)))
-                    self.viewport.yview_moveto(max(0.0, min(1.0, new_y_fraction)))
-        except Exception:
-            pass
-
-    def _on_viewport_configure(self, event=None):
-        try:
-            if self._resize_after_id:
-                try:
-                    self.after_cancel(self._resize_after_id)
-                except Exception:
-                    pass
-            self._resize_after_id = self.after(120, self._rescale_display_images)
-        except Exception:
-            pass
-
-    def _get_scroll_offsets_px(self):
-        try:
-            bbox = self.viewport.bbox('all')
-            if not bbox:
-                return 0.0, 0.0, 1.0, 1.0
-            width = float(bbox[2] - bbox[0])
-            height = float(bbox[3] - bbox[1])
-            x_frac0 = self.viewport.xview()[0]
-            y_frac0 = self.viewport.yview()[0]
-            return x_frac0 * width, y_frac0 * height, width, height
-        except Exception:
-            return 0.0, 0.0, 1.0, 1.0
-
-    def _on_pan_start(self, event):
-        try:
-            self._is_dragging = True
-            self._drag_start_root = (event.x_root, event.y_root)
-            sx, sy, _, _ = self._get_scroll_offsets_px()
-            self._drag_scroll_start_px = (sx, sy)
-            try:
-                self.configure(cursor='fleur')
-            except Exception:
-                pass
-            return 'break'
-        except Exception:
-            return None
-
-    def _on_pan_move(self, event):
-        if not self._is_dragging:
-            return None
-        try:
-            # Mouse delta in screen pixels
-            dx = event.x_root - self._drag_start_root[0]
-            dy = event.y_root - self._drag_start_root[1]
-            start_x_px, start_y_px = self._drag_scroll_start_px
-            # Move content with cursor: decrease scroll by delta
-            new_x_px = start_x_px - dx
-            new_y_px = start_y_px - dy
-            _, _, width, height = self._get_scroll_offsets_px()
-            # Convert to fractions and clamp
-            new_x_frac = 0.0 if width <= 0 else max(0.0, min(1.0, new_x_px / width))
-            new_y_frac = 0.0 if height <= 0 else max(0.0, min(1.0, new_y_px / height))
-            self.viewport.xview_moveto(new_x_frac)
-            self.viewport.yview_moveto(new_y_frac)
-            return 'break'
-        except Exception:
-            return None
-
-    def _on_pan_end(self, event):
-        try:
-            self._is_dragging = False
-            try:
-                self.configure(cursor='')
-            except Exception:
-                pass
-            return 'break'
-        except Exception:
-            return None
-
-    def _restore_scroll_after_update(self, old_x_px: float, old_y_px: float, attempt: int = 0):
-        """Restore viewport scroll based on previous absolute pixel offsets.
-        Retries a couple times in case scrollregion/bbox isn't ready yet.
-        """
-        try:
-            bbox = self.viewport.bbox('all')
-            if not bbox:
-                return
-            width = float(bbox[2] - bbox[0])
-            height = float(bbox[3] - bbox[1])
-            # If dimensions look invalid, retry shortly
-            if (height <= 1.0 or width <= 1.0) and attempt < 3:
-                self.after(16, lambda: self._restore_scroll_after_update(old_x_px, old_y_px, attempt + 1))
-                return
-            new_x_frac = 0.0 if width <= 0 else old_x_px / width
-            new_y_frac = 0.0 if height <= 0 else old_y_px / height
-            # Clamp
-            new_x_frac = max(0.0, min(1.0, new_x_frac))
-            new_y_frac = max(0.0, min(1.0, new_y_frac))
-            self.viewport.xview_moveto(new_x_frac)
-            self.viewport.yview_moveto(new_y_frac)
-        except Exception:
-            pass
-
-    def _rescale_display_images(self):
-        try:
-            self._resize_after_id = None
-            if self._last_illum_bgr is None and self._last_overlay_bgr is None:
-                return
-            try:
-                vp_w = max(1, self.viewport.winfo_width())
-            except Exception:
-                vp_w = 800
-
-            if self._last_illum_bgr is not None:
-                illum_bgr = self._last_illum_bgr
-                # Re-apply Original overlay blend so zoom preserves the user's setting
-                try:
-                    orig_alpha = float(self.orig_alpha.get()) if hasattr(self, 'orig_alpha') else 0.0
-                except Exception:
-                    orig_alpha = 0.0
-                if orig_alpha > 0.0 and self.src_img is not None:
-                    try:
-                        src_bgr = cv2.cvtColor(self.src_img, cv2.COLOR_GRAY2BGR) if self.src_img.ndim == 2 else self.src_img
-                        if src_bgr.shape[:2] != illum_bgr.shape[:2]:
-                            src_resized = cv2.resize(src_bgr, (illum_bgr.shape[1], illum_bgr.shape[0]), interpolation=cv2.INTER_LINEAR)
-                        else:
-                            src_resized = src_bgr
-                        illum_bgr = cv2.addWeighted(src_resized, orig_alpha, illum_bgr, 1.0 - orig_alpha, 0)
-                    except Exception:
-                        pass
-                # Apply zoom level to the scale calculation
-                base_scale = min(1.0, float(vp_w) / float(illum_bgr.shape[1])) if illum_bgr.shape[1] > 0 else 1.0
-                scale_illum = base_scale * self._zoom_level
-                photo_illum = to_photoimage_from_bgr_with_scale(illum_bgr, scale=scale_illum)
-                self._photo_illum = photo_illum
-                iw, ih = photo_illum.width(), photo_illum.height()
-                # Use content width (no centering) to keep coordinates stable
-                self.illum_canvas.config(width=iw, height=ih)
-                x = 0
-                if self._illum_img_id is None:
-                    self._illum_img_id = self.illum_canvas.create_image(x, 0, anchor='nw', image=photo_illum)
-                else:
-                    self.illum_canvas.itemconfig(self._illum_img_id, image=photo_illum)
-                    self.illum_canvas.coords(self._illum_img_id, x, 0)
-
-            if self._last_overlay_bgr is not None:
-                fringe_bgr = self._last_overlay_bgr
-                # Re-apply Original overlay blend to the fringe display as well
-                try:
-                    orig_alpha = float(self.orig_alpha.get()) if hasattr(self, 'orig_alpha') else 0.0
-                except Exception:
-                    orig_alpha = 0.0
-                if orig_alpha > 0.0 and self.src_img is not None:
-                    try:
-                        src_bgr = cv2.cvtColor(self.src_img, cv2.COLOR_GRAY2BGR) if self.src_img.ndim == 2 else self.src_img
-                        if src_bgr.shape[:2] != fringe_bgr.shape[:2]:
-                            src_resized = cv2.resize(src_bgr, (fringe_bgr.shape[1], fringe_bgr.shape[0]), interpolation=cv2.INTER_LINEAR)
-                        else:
-                            src_resized = src_bgr
-                        fringe_bgr = cv2.addWeighted(src_resized, orig_alpha, fringe_bgr, 1.0 - orig_alpha, 0)
-                    except Exception:
-                        pass
-                # Apply zoom level to the scale calculation
-                base_scale_fringe = min(1.0, float(vp_w) / float(fringe_bgr.shape[1])) if fringe_bgr.shape[1] > 0 else 1.0
-                scale_fringe = base_scale_fringe * self._zoom_level
-                photo_fringe = to_photoimage_from_bgr_with_scale(fringe_bgr, scale=scale_fringe)
-                self._photo_fringe = photo_fringe
-                fw, fh = photo_fringe.width(), photo_fringe.height()
-                self.fringe_canvas.config(width=fw, height=fh)
-                x2 = 0
-                if self._fringe_img_id is None:
-                    self._fringe_img_id = self.fringe_canvas.create_image(x2, 0, anchor='nw', image=photo_fringe)
-                else:
-                    self.fringe_canvas.itemconfig(self._fringe_img_id, image=photo_fringe)
-                    self.fringe_canvas.coords(self._fringe_img_id, x2, 0)
-
-            # inner_frame width must match content width so the outer viewport can compute scroll correctly
-            try:
-                content_w = 0
-                if getattr(self, '_photo_illum', None):
-                    content_w = max(content_w, self._photo_illum.width())
-                if getattr(self, '_photo_fringe', None):
-                    content_w = max(content_w, self._photo_fringe.width())
-                if content_w <= 0:
-                    content_w = vp_w
-                self.inner_frame.config(width=content_w)
-            except Exception:
-                pass
-        except Exception:
-            pass
+    # Viewport & rendering methods moved to ViewportRenderingMixin
 
     def on_close(self):
         self.destroy()
 
+    def _img_size(self):
+        try:
+            # Prefer illumination size (top image), fallback to overlay size
+            if self._last_illum_bgr is not None:
+                h, w = self._last_illum_bgr.shape[:2]
+                return (w, h)
+            if self._last_overlay_bgr is not None:
+                h, w = self._last_overlay_bgr.shape[:2]
+                return (w, h)
+        except Exception:
+            pass
+        return (0, 0)
+
+    # crop methods are provided by CropMixin
 
 def main():
     app = EvenApp()

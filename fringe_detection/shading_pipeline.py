@@ -4,9 +4,28 @@ from skimage.filters import threshold_sauvola
 
 
 def read_gray(path):
-    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    """Read an image as uint8 grayscale, robust to 16-bit TIFFs and color inputs.
+    - Loads with IMREAD_UNCHANGED to preserve bit depth, then converts.
+    - If color, converts to grayscale.
+    - If 16-bit/32-bit, rescales to 0..255 uint8 using min/max.
+    """
+    img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
     if img is None:
         raise FileNotFoundError(path)
+    # Convert color to grayscale if needed
+    if img.ndim == 3:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # Normalize to uint8
+    if img.dtype != np.uint8:
+        # Use min/max of the image to map to 0..255
+        imin = float(np.min(img))
+        imax = float(np.max(img))
+        if imax <= imin:
+            img8 = np.zeros_like(img, dtype=np.uint8)
+        else:
+            img8 = cv2.normalize(img, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            img8 = img8.astype(np.uint8)
+        img = img8
     return img
 
 

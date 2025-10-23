@@ -24,7 +24,6 @@ from skimage.morphology import skeletonize
 class FringeEditorFrame(tk.Frame):
     """
     Embeddable fringe editor as a tkinter Frame.
-    - on_close() callback will be invoked when user clicks 'Close' (when embedded)
     """
     def __init__(self, master=None, on_apply=None, on_close=None):
         super().__init__(master)
@@ -107,7 +106,6 @@ class FringeEditorFrame(tk.Frame):
 
         add(ttk.Button(self.toolbar, text="Link endpoints", command=self._link_endpoints))
         add(ttk.Button(self.toolbar, text="Undo", command=self.undo))
-        add(ttk.Button(self.toolbar, text="Close", command=self._handle_close))
 
         # Flow layout using grid: reflow on resize
         def _layout_toolbar(event=None):
@@ -278,10 +276,16 @@ class FringeEditorFrame(tk.Frame):
         )
         if not path:
             return
-        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        if img is None:
+        img0 = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+        if img0 is None:
             messagebox.showerror("Open error", "Failed to read the image")
             return
+        if img0.ndim == 3:
+            img0 = cv2.cvtColor(img0, cv2.COLOR_BGR2GRAY)
+        if img0.dtype != np.uint8:
+            img = cv2.normalize(img0, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        else:
+            img = img0
         # Normalize to strict binary 0/255
         mask = np.where(img <= 127, 0, 255).astype(np.uint8)
         self.mask = mask
@@ -312,10 +316,16 @@ class FringeEditorFrame(tk.Frame):
         )
         if not path:
             return
-        bg = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        if bg is None:
+        bg0 = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+        if bg0 is None:
             messagebox.showerror("Open error", "Failed to read the background image")
             return
+        if bg0.ndim == 3:
+            bg0 = cv2.cvtColor(bg0, cv2.COLOR_BGR2GRAY)
+        if bg0.dtype != np.uint8:
+            bg = cv2.normalize(bg0, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        else:
+            bg = bg0
         # If no mask loaded yet, start a new white mask matching background size
         if self.mask is None:
             self.mask = np.full(bg.shape, 255, dtype=np.uint8)
