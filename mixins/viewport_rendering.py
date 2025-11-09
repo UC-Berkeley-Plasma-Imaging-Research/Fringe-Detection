@@ -1,4 +1,5 @@
 import cv2
+from PIL import Image
 from fringe_detection import to_photoimage_from_bgr_with_scale
 
 
@@ -132,90 +133,115 @@ class ViewportRenderingMixin:
         except Exception:
             pass
 
+    def _create_blended_image(self, base_bgr, use_fast_resize=False):
+        """Create a blended image with the source image based on alpha value."""
+        try:
+            orig_alpha = float(self.orig_alpha.get()) if hasattr(self, 'orig_alpha') else 0.0
+        except Exception:
+            orig_alpha = 0.0
+            
+        if orig_alpha <= 0.0 or self.src_img is None:
+            return base_bgr
+            
+        try:
+            import numpy as np
+            src_bgr = cv2.cvtColor(self.src_img, cv2.COLOR_GRAY2BGR) if self.src_img.ndim == 2 else self.src_img
+            if src_bgr.shape[:2] != base_bgr.shape[:2]:
+                interp = cv2.INTER_NEAREST if use_fast_resize else cv2.INTER_LINEAR
+                src_resized = cv2.resize(src_bgr, (base_bgr.shape[1], base_bgr.shape[0]), interpolation=interp)
+            else:
+                src_resized = src_bgr
+            return cv2.addWeighted(src_resized, orig_alpha, base_bgr, 1.0 - orig_alpha, 0)
+        except Exception:
+            return base_bgr
+
     def _rescale_display_images(self):
+        """Rescale and display images with optimized performance."""
         try:
             self._resize_after_id = None
             if self._last_illum_bgr is None and self._last_overlay_bgr is None:
                 return
+
+            # Use fast resize during drag operations
+            use_fast_resize = getattr(self, '_is_dragging', False)
+            
             try:
                 vp_w = max(1, self.viewport.winfo_width())
             except Exception:
                 vp_w = 800
 
+            # Batch all canvas updates
+            self.viewport.update()
+            
+            # Process illumination image
             if self._last_illum_bgr is not None:
-                illum_bgr = self._last_illum_bgr
-                try:
-                    orig_alpha = float(self.orig_alpha.get()) if hasattr(self, 'orig_alpha') else 0.0
-                except Exception:
-                    orig_alpha = 0.0
-                if orig_alpha > 0.0 and self.src_img is not None:
-                    try:
-                        import numpy as np  # local import safeguard
-                        src_bgr = cv2.cvtColor(self.src_img, cv2.COLOR_GRAY2BGR) if self.src_img.ndim == 2 else self.src_img
-                        if src_bgr.shape[:2] != illum_bgr.shape[:2]:
-                            src_resized = cv2.resize(src_bgr, (illum_bgr.shape[1], illum_bgr.shape[0]), interpolation=cv2.INTER_LINEAR)
-                        else:
-                            src_resized = src_bgr
-                        illum_bgr = cv2.addWeighted(src_resized, orig_alpha, illum_bgr, 1.0 - orig_alpha, 0)
-                    except Exception:
-                        pass
-                base_scale = min(1.0, float(vp_w) / float(illum_bgr.shape[1])) if illum_bgr.shape[1] > 0 else 1.0
+                # Create or get cached blended image
+                if not hasattr(self, '_cached_illum_alpha'):
+                    self._cached_illum_alpha = -1
+                
+                curr_alpha = float(getattr(self, 'orig_alpha', 0.0))
+                if abs(curr_alpha - self._cached_illum_alpha) > 0.01:
+                    self._cached_illum_bgr = self._create_blended_image(self._last_illum_bgr, use_fast_resize)
+                    self._cached_illum_alpha = curr_alpha
+                
+                illum_bgr = self._cached_illum_bgr
+                base_scale = min(1.0, vp_w / illum_bgr.shape[1]) if illum_bgr.shape[1] > 0 else 1.0
                 scale_illum = base_scale * self._zoom_level
-                photo_illum = to_photoimage_from_bgr_with_scale(illum_bgr, scale=scale_illum)
+                
+                # Create PhotoImage with appropriate interpolation
+                interp = Image.NEAREST if use_fast_resize else Image.BILINEAR
+                photo_illum = to_photoimage_from_bgr_with_scale(illum_bgr, scale=scale_illum, interpolation=interp)
                 self._photo_illum = photo_illum
+                
+                # Update canvas
                 iw, ih = photo_illum.width(), photo_illum.height()
-                self.illum_canvas.config(width=iw, height=ih)
-                x = 0
                 if self._illum_img_id is None:
-                    self._illum_img_id = self.illum_canvas.create_image(x, 0, anchor='nw', image=photo_illum)
+                    self._illum_img_id = self.illum_canvas.create_image(0, 0, anchor='nw', image=photo_illum)
                 else:
                     self.illum_canvas.itemconfig(self._illum_img_id, image=photo_illum)
-                    self.illum_canvas.coords(self._illum_img_id, x, 0)
+                self.illum_canvas.config(width=iw, height=ih)
 
+            # Process fringe/overlay image
             if self._last_overlay_bgr is not None:
-                fringe_bgr = self._last_overlay_bgr
-                try:
-                    orig_alpha = float(self.orig_alpha.get()) if hasattr(self, 'orig_alpha') else 0.0
-                except Exception:
-                    orig_alpha = 0.0
-                if orig_alpha > 0.0 and self.src_img is not None:
-                    try:
-                        src_bgr = cv2.cvtColor(self.src_img, cv2.COLOR_GRAY2BGR) if self.src_img.ndim == 2 else self.src_img
-                        if src_bgr.shape[:2] != fringe_bgr.shape[:2]:
-                            src_resized = cv2.resize(src_bgr, (fringe_bgr.shape[1], fringe_bgr.shape[0]), interpolation=cv2.INTER_LINEAR)
-                        else:
-                            src_resized = src_bgr
-                        fringe_bgr = cv2.addWeighted(src_resized, orig_alpha, fringe_bgr, 1.0 - orig_alpha, 0)
-                    except Exception:
-                        pass
-                base_scale_fringe = min(1.0, float(vp_w) / float(fringe_bgr.shape[1])) if fringe_bgr.shape[1] > 0 else 1.0
-                scale_fringe = base_scale_fringe * self._zoom_level
-                photo_fringe = to_photoimage_from_bgr_with_scale(fringe_bgr, scale=scale_fringe)
+                # Create or get cached blended image
+                if not hasattr(self, '_cached_fringe_alpha'):
+                    self._cached_fringe_alpha = -1
+                
+                curr_alpha = float(getattr(self, 'orig_alpha', 0.0))
+                if abs(curr_alpha - self._cached_fringe_alpha) > 0.01:
+                    self._cached_fringe_bgr = self._create_blended_image(self._last_overlay_bgr, use_fast_resize)
+                    self._cached_fringe_alpha = curr_alpha
+                
+                fringe_bgr = self._cached_fringe_bgr
+                base_scale = min(1.0, vp_w / fringe_bgr.shape[1]) if fringe_bgr.shape[1] > 0 else 1.0
+                scale_fringe = base_scale * self._zoom_level
+                
+                # Create PhotoImage with appropriate interpolation
+                interp = Image.NEAREST if use_fast_resize else Image.BILINEAR
+                photo_fringe = to_photoimage_from_bgr_with_scale(fringe_bgr, scale=scale_fringe, interpolation=interp)
                 self._photo_fringe = photo_fringe
+                
+                # Update canvas
                 fw, fh = photo_fringe.width(), photo_fringe.height()
-                self.fringe_canvas.config(width=fw, height=fh)
-                x2 = 0
                 if self._fringe_img_id is None:
-                    self._fringe_img_id = self.fringe_canvas.create_image(x2, 0, anchor='nw', image=photo_fringe)
+                    self._fringe_img_id = self.fringe_canvas.create_image(0, 0, anchor='nw', image=photo_fringe)
                 else:
                     self.fringe_canvas.itemconfig(self._fringe_img_id, image=photo_fringe)
-                    self.fringe_canvas.coords(self._fringe_img_id, x2, 0)
+                self.fringe_canvas.config(width=fw, height=fh)
 
+            # Update frame width
             try:
-                content_w = 0
-                if getattr(self, '_photo_illum', None):
-                    content_w = max(content_w, self._photo_illum.width())
-                if getattr(self, '_photo_fringe', None):
-                    content_w = max(content_w, self._photo_fringe.width())
-                if content_w <= 0:
-                    content_w = vp_w
+                content_w = max(
+                    getattr(self, '_photo_illum', None).width() if getattr(self, '_photo_illum', None) else 0,
+                    getattr(self, '_photo_fringe', None).width() if getattr(self, '_photo_fringe', None) else 0,
+                    vp_w
+                )
                 self.inner_frame.config(width=content_w)
             except Exception:
                 pass
-            try:
-                self._redraw_crop_overlay()
-            except Exception:
-                pass
+
+            # Crop overlay removed; no redraw needed.
+
         except Exception:
             pass
 

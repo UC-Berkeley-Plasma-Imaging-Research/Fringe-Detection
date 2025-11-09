@@ -4,30 +4,65 @@ from PIL import Image, ImageTk
 import cv2
 
 
-def to_photoimage_from_bgr_with_scale(bgr, scale=1.0):
-    """Convert an OpenCV BGR/gray numpy array to a Tk PhotoImage, optionally scaled.
-    Returns an ImageTk.PhotoImage."""
+def to_photoimage_from_bgr_with_scale(bgr, scale=1.0, interpolation=Image.BILINEAR):
+    """Convert a BGR/gray numpy array to a Tk PhotoImage (optional scaling).
+    
+    Args:
+        bgr: BGR or grayscale numpy array
+        scale: Scale factor (default=1.0)
+        interpolation: PIL interpolation mode (default=Image.BILINEAR)
+    """
     if bgr is None:
         return ImageTk.PhotoImage(Image.new('RGB', (1, 1)))
-    if bgr.ndim == 2:
-        img = Image.fromarray(bgr)
+
+    # Convert only if needed
+    if hasattr(to_photoimage_from_bgr_with_scale, '_last_bgr') and \
+       hasattr(to_photoimage_from_bgr_with_scale, '_last_img') and \
+       bgr is to_photoimage_from_bgr_with_scale._last_bgr:
+        img = to_photoimage_from_bgr_with_scale._last_img
     else:
-        # convert BGR -> RGB for PIL
-        img = Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
+        if bgr.ndim == 2:
+            img = Image.fromarray(bgr)
+        else:
+            img = Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
+        to_photoimage_from_bgr_with_scale._last_bgr = bgr
+        to_photoimage_from_bgr_with_scale._last_img = img
+
+    # Scale only if needed
     if scale is None or float(scale) == 1.0:
         return ImageTk.PhotoImage(img)
+
     w, h = img.size
-    new_w = max(1, int(round(w * float(scale))))
-    new_h = max(1, int(round(h * float(scale))))
-    img2 = img.resize((new_w, new_h), resample=Image.BILINEAR)
-    return ImageTk.PhotoImage(img2)
+    new_w = max(1, int(w * float(scale)))
+    new_h = max(1, int(h * float(scale)))
+    
+    # Check if we have a cached version of this size
+    cache_key = (id(img), new_w, new_h, interpolation)
+    if hasattr(to_photoimage_from_bgr_with_scale, '_size_cache'):
+        cached = to_photoimage_from_bgr_with_scale._size_cache.get(cache_key)
+        if cached is not None:
+            return cached
+    else:
+        to_photoimage_from_bgr_with_scale._size_cache = {}
+
+    # Create new scaled image
+    img2 = img.resize((new_w, new_h), resample=interpolation)
+    photo = ImageTk.PhotoImage(img2)
+    
+    # Cache result
+    to_photoimage_from_bgr_with_scale._size_cache[cache_key] = photo
+    
+    # Limit cache size
+    if len(to_photoimage_from_bgr_with_scale._size_cache) > 10:
+        # Remove oldest entries
+        for k in list(to_photoimage_from_bgr_with_scale._size_cache.keys())[:-10]:
+            del to_photoimage_from_bgr_with_scale._size_cache[k]
+            
+    return photo
 
 
 def make_slider_row(parent, label_text, var, frm, to, resolution=None, is_int=False, fmt=None, command=None):
-    """Create a labeled slider row in parent with a live value label on the right.
-    Returns the scale widget. The "command" callable will be set as the scale callback.
-    This mirrors the behaviour previously implemented as an instance method.
-    """
+    """Create a labeled slider with a live value label; returns the Scale widget."""
     if command is None:
         # no-op default
         def command(_=None):
@@ -59,9 +94,7 @@ def make_slider_row(parent, label_text, var, frm, to, resolution=None, is_int=Fa
         except Exception:
             val_var.set('')
 
-    # initial
     _update_val()
-    # trace changes
     try:
         var.trace_add('write', lambda *a: _update_val())
     except Exception:

@@ -1,22 +1,10 @@
-# Fringe Detection
-
-This repository contains resources and notebooks for fringe detection in imaging data, likely related to plasma imaging research at UC Berkeley.
-
-## Contents
-- `Reference.png`, `ReferenceCropped.png`: Reference images used for calibration or comparison.
-- `Shot.png`, `ShotCropped.png`: Sample images for analysis, possibly raw and cropped versions.
-
-## Getting Started
-1. **Requirements**: Install Python 3.x and Jupyter Notebook.
-2. **Dependencies**: Common packages include `numpy`, `matplotlib`, `opencv-python`, and `scipy`. Install them with:
-   ```powershell
-   pip install numpy matplotlib opencv-python scipy
-   # Fringe Detection — Even Illumination App
+# SpellBook — Fringe Detection & Overlay App
 
 This repository provides a small GUI app to perform even-illumination correction and fringe extraction on images. The code has been reorganized so distribution ZIPs contain a single top-level script plus a package folder containing helpers.
 
 What’s in this repo
-- `FringeDetection.py` — the top-level entrypoint to run the GUI app (rename/replace of previous main file).
+`SpellBook.py` — the top-level script to run the GUI app.
+- `tabs/` — UI tabs, including `overlay_tab.py` and `fringe_editor.py`.
 - `fringe_detection/` — package containing helper modules (`shading_pipeline`, `fringe_utils`, `ui_helpers`).
 - `requirements.txt` — runtime dependencies.
 
@@ -39,7 +27,7 @@ pip install -r requirements.txt
 3) Run the app:
 
 ```powershell
-python FringeDetection.py
+python SpellBook.py
 ```
 
    Notes
@@ -60,26 +48,26 @@ python FringeDetection.py
 
    Building locally
 
-   If you prefer to build locally (Windows), you can produce a single-file executable using PyInstaller — update the command to point at `FringeDetection.py`:
+   If you prefer to build locally (Windows), you can produce a single-file executable using PyInstaller — update the command to point at `SpellBook.py`:
 
 ```powershell
 python -m pip install --upgrade pip
 pip install -r requirements.txt pyinstaller
-pyinstaller --noconfirm --onefile --name "Fringe-Detection" FringeDetection.py
-# The executable will be in the dist\ folder: dist\Fringe-Detection.exe
+pyinstaller --noconfirm --onefile --name "SpellBook" SpellBook.py
+# The executable will be in the dist\ folder: dist\SpellBook.exe
 ```
 
 Run from a downloaded ZIP (Windows)
 
-If you distribute a ZIP with the repo contents, the top-level folder will contain `FringeDetection.py` and the `fringe_detection/` package. A simple set of steps for non-developers:
+If you distribute a ZIP with the repo contents, the top-level folder will contain `SpellBook.py` and the `fringe_detection/` package. A simple set of steps for non-developers:
 
 ```powershell
 # Extract the ZIP to a folder, open PowerShell in that folder
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+\.\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-python FringeDetection.py
+python SpellBook.py
 ```
 
 Run on macOS
@@ -92,7 +80,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-python FringeDetection.py
+python SpellBook.py
 ```
 
 If binary wheel installation fails on macOS (especially Apple Silicon), consider using Miniforge/conda to get prebuilt packages.
@@ -114,3 +102,9 @@ If binary wheel installation fails on macOS (especially Apple Silicon), consider
 
    - The workflow currently builds a Windows executable using Python 3.11 on `windows-latest` runners. If you need macOS or Linux builds, we can add additional jobs.
    - If PyInstaller misses any dynamic libraries (rare for OpenCV/scikit-image), the local build log will show missing DLLs; bundling fixes can be applied in the workflow or by editing the PyInstaller spec.
+
+## Notes
+
+- Overlay tab: Compare a reference and a shot image with adjustable shot opacity, cursor-anchored zoom, right-click pan, and shared crop overlay. Only the shot moves when dragging; the reference stays anchored. Save Reference and Save Shot buttons are included.
+- Editor tab: A lightweight fringe mask editor for fine manual touch-ups (paint add/remove with adjustable brush size, endpoint linking, undo).
+- Example assets: If you keep a sample folder, use `EditedImages/` (renamed from `Images/`). Update paths accordingly in your workflows.

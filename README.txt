@@ -1,12 +1,13 @@
-Fringe Detection
+SpellBook — Fringe Detection
 
 This repository contains a small GUI app and helper modules for fringe detection and even-illumination correction.
 
 Contents
-- FringeDetection.py - top-level script that launches the GUI app.
+- SpellBook.py - top-level script that launches the GUI app.
+- tabs/ - UI tabs including overlay and editor.
 - fringe_detection/ - helper package with processing and UI utilities.
 - requirements.txt - Python dependencies.
-- Images/ - example and reference images (optional).
+- EditedImages/ - example and reference images (optional, renamed from Images/).
 
 Requirements
 - Python 3.8+ (3.11 is recommended)
@@ -22,11 +23,11 @@ Quick start (Windows PowerShell)
    pip install -r requirements.txt
 
 3. Run the app:
-   python FringeDetection.py
+   python SpellBook.py
 
 Notes
 - The app depends on OpenCV (opencv-python), scikit-image and Pillow. On some platforms installing these packages may pull in binary wheels or require build tools.
-- This repository is intended to be used as Python source. Build artifacts and packaging scripts were removed to keep the project lightweight.
+- The Overlay tab lets you load a Reference and a Shot image, drag the Shot independently, and export either image. The Editor tab provides manual fringe mask editing.
 
 License
 - Add a LICENSE file (e.g., MIT) if you want to publish this project.
