@@ -53,11 +53,38 @@ class EvenApp(ViewportRenderingMixin, tk.Tk):
 
         ctrl = ttk.Frame(detect_tab)
         ctrl.pack(side='left', fill='y', padx=8, pady=8)
-        ctrl.config(width=260)
+        ctrl.config(width=200)  # 50% smaller than previous 260
         ctrl.pack_propagate(False)
 
-        # Left panel title
-        ttk.Label(ctrl, text='Binary Masking', font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 6))
+        # Left panel title + help icon
+        left_title = ttk.Frame(ctrl)
+        left_title.pack(anchor='w', fill='x')
+        ttk.Label(left_title, text='Binary Masking', font=('Segoe UI', 10, 'bold')).pack(side='left')
+        def make_help_icon(parent, tooltip_text, side='right'):
+            # ttk frames/labels use style; fallback to system bg via winfo_rgb hack instead of cget('background')
+            try:
+                bg = self.cget('background')
+            except Exception:
+                bg = '#f0f0f0'
+            c = tk.Canvas(parent, width=18, height=18, highlightthickness=0, bg=bg)
+            c.create_oval(2,2,16,16, outline='#666', width=1)
+            c.create_text(9,9, text='?', font=('Segoe UI', 9))
+            c.pack(side='left', padx=(6,0))
+            self._attach_tooltip(c, tooltip_text, side=side)
+            return c
+        make_help_icon(left_title, (
+            'Detection Tab Purpose:\n'
+            'This tab allows you to detect fringes in an image using various preprocessing and detection parameters.\n'
+            '\n'
+            'Controls:\n'
+            '- Right-click drag to move image\n'
+            '- Mouse wheel to zoom\n'
+            '\n'
+            'Features:\n'
+            '- Load an image to detect fringes\n'
+            '- Adjustable preprocessing sliders (blur, CLAHE)\n'
+            '- Adjustable Overlay Opacity\n'
+        ))
 
         # Row with Browse on the left and Save on the right
         btn_row = ttk.Frame(ctrl)
@@ -84,7 +111,7 @@ class EvenApp(ViewportRenderingMixin, tk.Tk):
 
         ttk.Button(ctrl, text='Edit slider ranges', command=self.open_slider_ranges).pack(anchor='w', pady=4)
 
-        self.status = ttk.Label(ctrl, text='Ready', wraplength=220)
+        self.status = ttk.Label(ctrl, text='Ready', wraplength=110)
         self.status.pack(pady=6)
 
         self.orig_alpha = tk.DoubleVar(value=0.0)
@@ -93,64 +120,71 @@ class EvenApp(ViewportRenderingMixin, tk.Tk):
 
         ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
 
+        # Middle display area with two independent viewers
         img_frame = ttk.Frame(detect_tab)
         img_frame.pack(side='left', fill='both', expand=True, padx=8, pady=8)
 
+        # Right control panel
         fringe_ctrl = ttk.Frame(detect_tab)
         fringe_ctrl.pack(side='right', fill='y', padx=8, pady=8)
-        fringe_ctrl.config(width=260)
+        fringe_ctrl.config(width=195)  # 25% smaller than previous 260
         fringe_ctrl.pack_propagate(False)
 
-        # Right panel title
-        ttk.Label(fringe_ctrl, text='Fringe Detection', font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 6))
+        # Right panel title + help icon
+        right_title = ttk.Frame(fringe_ctrl)
+        right_title.pack(anchor='w', fill='x')
+        ttk.Label(right_title, text='Fringe Detection', font=('Segoe UI', 10, 'bold')).pack(side='left')
+        make_help_icon(right_title, (
+            'Fringe Detection Sliders:\n'
+            '- Kernel length/thickness: sets oriented opening size.\n'
+            '- Angle ± and step: max angle and step at which fringes are drawn.\n'
+            '- Dilate px & Min area: post-filter specks before skeletonize.\n'
+            '- Background fade: sets overlay dimming for visibility.'
+        ), side='left')
 
+        # Two viewers: one for illumination, one for overlay — independent zoom/pan
         img_frame.pack_propagate(False)
-        self.viewport = tk.Canvas(img_frame, bg='black', highlightthickness=0)
-        self.viewport.pack(side='left', fill='both', expand=True)
+        viewers_container = ttk.Frame(img_frame)
+        viewers_container.pack(fill='both', expand=True)
 
-        self.inner_frame = ttk.Frame(self.viewport)
-        self._inner_window = self.viewport.create_window((0, 0), window=self.inner_frame, anchor='nw')
-        self.inner_frame.bind('<Configure>', lambda e: self.viewport.configure(scrollregion=self.viewport.bbox('all')))
+        def make_viewer(parent, title):
+            lf = ttk.LabelFrame(parent, text=title)
+            lf.pack(fill='both', expand=True, pady=(0,6) if title!='Fringe Overlay' else (0,0))
+            lf.pack_propagate(False)
+            outer = ttk.Frame(lf)
+            outer.pack(fill='both', expand=True)
+            canvas = tk.Canvas(outer, bg='black', highlightthickness=0)
+            hbar = ttk.Scrollbar(outer, orient='horizontal', command=canvas.xview)
+            vbar = ttk.Scrollbar(outer, orient='vertical', command=canvas.yview)
+            canvas.configure(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
+            canvas.grid(row=0, column=0, sticky='nsew')
+            vbar.grid(row=0, column=1, sticky='ns')
+            hbar.grid(row=1, column=0, sticky='ew')
+            outer.columnconfigure(0, weight=1)
+            outer.rowconfigure(0, weight=1)
+            return canvas
 
-        self.illum_canvas = tk.Canvas(self.inner_frame, bg='black', highlightthickness=0)
-        self.illum_canvas.pack(fill='x')
+        self.illum_canvas = make_viewer(viewers_container, 'Illumination')
+        self.fringe_canvas = make_viewer(viewers_container, 'Fringe Overlay')
+
+        # Image / viewer state
         self._illum_img_id = None
-
-        self.fringe_canvas = tk.Canvas(self.inner_frame, bg='black', highlightthickness=0)
-        self.fringe_canvas.pack(fill='x')
         self._fringe_img_id = None
-
         self._photo_illum = None
         self._photo_fringe = None
         self._last_illum_bgr = None
         self._last_overlay_bgr = None
-        self._resize_after_id = None
-        self._zoom_level = 1.0
+        self._illum_zoom = 1.0
+        self._fringe_zoom = 1.0
+        self._zoom_level = 1.0  # for status (use overlay zoom)
 
-        # Removed zoom debug log usage; keeping attribute for compatibility.
-        self._zoom_debug_log = None
-
-        self._pan_active = False
-        self._pan_start_root = (0, 0)
-        self._pan_start_scroll = (0.0, 0.0)
-        self._pan_content_size = (1, 1)
-
-        def bind_all(targets):
-            for w in targets:
-                try:
-                    w.bind('<MouseWheel>', self._on_det_wheel, add='+')
-                except Exception:
-                    pass
-                try:
-                    w.bind('<Button-3>', self._on_det_pan_start, add='+')
-                    w.bind('<B3-Motion>', self._on_det_pan_move, add='+')
-                    w.bind('<ButtonRelease-3>', self._on_det_pan_end, add='+')
-                except Exception:
-                    pass
-        bind_all((self.viewport, self.inner_frame, self.illum_canvas, self.fringe_canvas))
-
-        self._is_dragging = False
-        self.viewport.bind('<Configure>', self._on_viewport_configure)
+        # Bind zoom & pan per viewer
+        def bind_viewer(canvas, which):
+            canvas.bind('<MouseWheel>', lambda e, w=which: self._on_viewer_wheel(e, w))
+            canvas.bind('<Button-3>', lambda e, c=canvas: c.scan_mark(e.x, e.y))
+            canvas.bind('<B3-Motion>', lambda e, c=canvas: c.scan_dragto(e.x, e.y, gain=1))
+        bind_viewer(self.illum_canvas, 'illum')
+        bind_viewer(self.fringe_canvas, 'fringe')
 
         editor_tab = ttk.Frame(self.notebook)
         self.notebook.add(editor_tab, text='Editor')
@@ -216,6 +250,55 @@ class EvenApp(ViewportRenderingMixin, tk.Tk):
             zoom_txt = ''
         self.status.config(text=txt + zoom_txt)
         # Simplified status setter: removed file logging of zoom/pan state.
+
+    def _attach_tooltip(self, widget, text, side='right'):
+        # Minimal tooltip on hover using a small Toplevel
+        tip = {'win': None}
+
+        def show_tip(_e=None):
+            if tip['win'] is not None:
+                return
+            win = tk.Toplevel(widget)
+            tip['win'] = win
+            try:
+                win.wm_overrideredirect(True)
+            except Exception:
+                pass
+            frame = ttk.Frame(win, borderwidth=1, relief='solid')
+            frame.pack()
+            lbl = ttk.Label(frame, text=text, justify='left', padding=6)
+            lbl.pack()
+            # Position after measuring to support left-of-icon placement
+            try:
+                win.update_idletasks()
+                wrx = widget.winfo_rootx(); wry = widget.winfo_rooty()
+                ww = widget.winfo_width(); wh = widget.winfo_height()
+                win_w = win.winfo_width() or win.winfo_reqwidth()
+                if str(side).lower() == 'left':
+                    x = int(wrx - 8 - win_w)
+                else:
+                    x = int(wrx + ww + 8)
+                y = int(wry + (wh * 0.5))
+                if x < 0: x = 0
+                if y < 0: y = 0
+                win.wm_geometry(f"+{x}+{y}")
+            except Exception:
+                pass
+
+        def hide_tip(_e=None):
+            w = tip.get('win')
+            if w is not None:
+                try:
+                    w.destroy()
+                except Exception:
+                    pass
+                tip['win'] = None
+
+        try:
+            widget.bind('<Enter>', show_tip)
+            widget.bind('<Leave>', hide_tip)
+        except Exception:
+            pass
 
     def load_image_dialog(self, entry_widget=None):
         try:
@@ -365,12 +448,6 @@ class EvenApp(ViewportRenderingMixin, tk.Tk):
                                            bg_to='white')
             illum_bgr = cv2.cvtColor(enh, cv2.COLOR_GRAY2BGR) if enh.ndim == 2 else enh
             self.after(0, lambda: self._update_illum_and_fringe(illum_bgr, overlay))
-            # If Editor tab is present and has no mask yet, seed it with the current result.
-            try:
-                if self._editor_frame is not None and self._editor_frame.get_mask() is None:
-                    self._editor_frame.set_data(self._binary_mask)
-            except Exception:
-                pass
         except Exception:
             self.after(0, lambda: messagebox.showerror('Render error', 'An error occurred during rendering'))
         finally:
@@ -381,216 +458,67 @@ class EvenApp(ViewportRenderingMixin, tk.Tk):
 
     def _update_illum_and_fringe(self, illum_bgr, overlay_bgr):
         try:
-            try:
-                pre_x = self.viewport.xview()
-                pre_y = self.viewport.yview()
-                pre_bbox = self.viewport.bbox('all')
-                pre_w = float(pre_bbox[2] - pre_bbox[0]) if pre_bbox else 1.0
-                pre_h = float(pre_bbox[3] - pre_bbox[1]) if pre_bbox else 1.0
-                pre_x_px = float(pre_x[0]) * pre_w if pre_w > 0 else 0.0
-                pre_y_px = float(pre_y[0]) * pre_h if pre_h > 0 else 0.0
-            except Exception:
-                pre_x_px = 0.0
-                pre_y_px = 0.0
-            try:
-                self._last_illum_bgr = illum_bgr.copy() if illum_bgr is not None else None
-            except Exception:
-                self._last_illum_bgr = illum_bgr
-            try:
-                self._last_overlay_bgr = overlay_bgr.copy() if overlay_bgr is not None else None
-            except Exception:
-                self._last_overlay_bgr = overlay_bgr
-            try:
-                cur_first, cur_last = self.viewport.yview()
-            except Exception:
-                cur_first, cur_last = (0.0, 1.0)
+            # Store originals
+            self._last_illum_bgr = None if illum_bgr is None else illum_bgr.copy()
+            self._last_overlay_bgr = None if overlay_bgr is None else overlay_bgr.copy()
             orig_alpha = float(self.orig_alpha.get()) if hasattr(self, 'orig_alpha') else 0.0
-            if orig_alpha > 0.0 and self.src_img is not None:
+            if orig_alpha > 0.0 and self.src_img is not None and illum_bgr is not None:
                 src_bgr = cv2.cvtColor(self.src_img, cv2.COLOR_GRAY2BGR) if self.src_img.ndim == 2 else self.src_img
                 if src_bgr.shape[:2] != illum_bgr.shape[:2]:
                     src_resized = cv2.resize(src_bgr, (illum_bgr.shape[1], illum_bgr.shape[0]), interpolation=cv2.INTER_LINEAR)
                 else:
                     src_resized = src_bgr
                 illum_disp = cv2.addWeighted(src_resized, orig_alpha, illum_bgr, 1.0 - orig_alpha, 0)
-                if overlay_bgr.shape[:2] != src_resized.shape[:2]:
-                    src2 = cv2.resize(src_bgr, (overlay_bgr.shape[1], overlay_bgr.shape[0]), interpolation=cv2.INTER_LINEAR)
+                if overlay_bgr is not None:
+                    if overlay_bgr.shape[:2] != src_resized.shape[:2]:
+                        src2 = cv2.resize(src_bgr, (overlay_bgr.shape[1], overlay_bgr.shape[0]), interpolation=cv2.INTER_LINEAR)
+                    else:
+                        src2 = src_resized
+                    fringe_disp = cv2.addWeighted(src2, orig_alpha, overlay_bgr, 1.0 - orig_alpha, 0)
                 else:
-                    src2 = src_resized
-                fringe_disp = cv2.addWeighted(src2, orig_alpha, overlay_bgr, 1.0 - orig_alpha, 0)
+                    fringe_disp = overlay_bgr
             else:
                 illum_disp = illum_bgr
                 fringe_disp = overlay_bgr
 
-            try:
-                vp_w = max(1, self.viewport.winfo_width())
-            except Exception:
-                vp_w = 800
-            orig_iw = illum_disp.shape[1]
-            base_scale_illum = (float(vp_w) / float(orig_iw)) if orig_iw > 0 else 1.0
-            scale_illum = base_scale_illum * self._zoom_level
-            photo_illum = to_photoimage_from_bgr_with_scale(illum_disp, scale=scale_illum)
-            self._photo_illum = photo_illum
-            iw, ih = photo_illum.width(), photo_illum.height()
-            self.illum_canvas.config(width=iw, height=ih)
-            self._illum_size = (iw, ih)
-            x = 0; y = 0
-            if self._illum_img_id is None:
-                self._illum_img_id = self.illum_canvas.create_image(x, y, anchor='nw', image=photo_illum)
-            else:
-                self.illum_canvas.itemconfig(self._illum_img_id, image=photo_illum)
-                self.illum_canvas.coords(self._illum_img_id, x, y)
-
-            orig_fw = fringe_disp.shape[1]
-            base_scale_fringe = (float(vp_w) / float(orig_fw)) if orig_fw > 0 else 1.0
-            scale_fringe = base_scale_fringe * self._zoom_level
-            photo_fringe = to_photoimage_from_bgr_with_scale(fringe_disp, scale=scale_fringe)
-            self._photo_fringe = photo_fringe
-            fw, fh = photo_fringe.width(), photo_fringe.height()
-            self.fringe_canvas.config(width=fw, height=fh)
-            self._fringe_size = (fw, fh)
-            x2 = 0; y2 = 0
-            if self._fringe_img_id is None:
-                self._fringe_img_id = self.fringe_canvas.create_image(x2, y2, anchor='nw', image=photo_fringe)
-            else:
-                self.fringe_canvas.itemconfig(self._fringe_img_id, image=photo_fringe)
-                self.fringe_canvas.coords(self._fringe_img_id, x2, y2)
-            try:
-                content_w = max(iw, fw)
-                self.inner_frame.config(width=content_w)
-            except Exception:
-                pass
-
+            # Render illumination viewer
+            if illum_disp is not None:
+                photo_illum = to_photoimage_from_bgr_with_scale(illum_disp, scale=self._illum_zoom)
+                self._photo_illum = photo_illum
+                if self._illum_img_id is None:
+                    self._illum_img_id = self.illum_canvas.create_image(0,0, anchor='nw', image=photo_illum)
+                else:
+                    self.illum_canvas.itemconfig(self._illum_img_id, image=photo_illum)
+                self.illum_canvas.config(scrollregion=(0,0,photo_illum.width(), photo_illum.height()))
+            # Render fringe viewer
+            if fringe_disp is not None:
+                photo_fringe = to_photoimage_from_bgr_with_scale(fringe_disp, scale=self._fringe_zoom)
+                self._photo_fringe = photo_fringe
+                if self._fringe_img_id is None:
+                    self._fringe_img_id = self.fringe_canvas.create_image(0,0, anchor='nw', image=photo_fringe)
+                else:
+                    self.fringe_canvas.itemconfig(self._fringe_img_id, image=photo_fringe)
+                self.fringe_canvas.config(scrollregion=(0,0,photo_fringe.width(), photo_fringe.height()))
+            self._zoom_level = self._fringe_zoom
             self.set_status('Rendered')
         except Exception:
-            pass  # Error while rendering display; suppressed debug traceback.
-        finally:
-            try:
-                self.viewport.update_idletasks()
-                bbox = self.viewport.bbox('all')
-                if bbox is None:
-                    return
-                inner_w = bbox[2] - bbox[0]
-                inner_h = bbox[3] - bbox[1]
-                vp_w = self.viewport.winfo_width()
-                vp_h = self.viewport.winfo_height()
-                self.viewport.configure(scrollregion=(0, 0, inner_w, inner_h))
-                try:
-                    self._restore_scroll_after_update(pre_x_px, pre_y_px)
-                except Exception:
-                    pass
-            except Exception:
-                pass
+            pass
 
-    def _log_zoom_pan(self, msg):
-        # Removed debug logging; function retained as a no-op to avoid dangling calls.
-        pass
-
-    def _on_det_wheel(self, event):
-        if self._last_illum_bgr is None and self._last_overlay_bgr is None:
-            return
+    # Per-viewer wheel handler
+    def _on_viewer_wheel(self, event, which):
         delta = int(getattr(event, 'delta', 0))
         if delta == 0:
             return
         factor = 1.1 if delta > 0 else 0.9
-        old_zoom = self._zoom_level
-        new_zoom = max(0.1, min(10.0, old_zoom * factor))
-        if abs(new_zoom - old_zoom) < 1e-6:
-            return
-        try:
-            mx_root, my_root = int(event.x_root), int(event.y_root)
-            vp_rx, vp_ry = self.viewport.winfo_rootx(), self.viewport.winfo_rooty()
-            mx = mx_root - vp_rx
-            my = my_root - vp_ry
-        except Exception:
-            mx, my = getattr(event, 'x', 0), getattr(event, 'y', 0)
-        vp_w = max(1, self.viewport.winfo_width())
-        vp_h = max(1, self.viewport.winfo_height())
-        bbox_before = self.viewport.bbox('all')
-        if not bbox_before:
-            return
-        content_w_before = bbox_before[2] - bbox_before[0]
-        content_h_before = bbox_before[3] - bbox_before[1]
-        left_frac_before = self.viewport.xview()[0]
-        top_frac_before = self.viewport.yview()[0]
-        left_px_before = left_frac_before * content_w_before
-        top_px_before = top_frac_before * content_h_before
-        anchor_abs_x = left_px_before + mx
-        anchor_abs_y = top_px_before + my
-
-        self._zoom_level = new_zoom
-        try:
-            if self._last_illum_bgr is not None and self._last_overlay_bgr is not None:
-                self._update_illum_and_fringe(self._last_illum_bgr, self._last_overlay_bgr)
-        except Exception:
-            pass
-        bbox_after = self.viewport.bbox('all')
-        if not bbox_after:
-            return
-        content_w_after = bbox_after[2] - bbox_after[0]
-        content_h_after = bbox_after[3] - bbox_after[1]
-        rx = (content_w_after / content_w_before) if content_w_before > 0 else 1.0
-        ry = (content_h_after / content_h_before) if content_h_before > 0 else 1.0
-        new_left_px = (rx * anchor_abs_x) - mx
-        new_top_px = (ry * anchor_abs_y) - my
-        max_left_px = max(0, content_w_after - vp_w)
-        max_top_px = max(0, content_h_after - vp_h)
-        new_left_px = max(0, min(max_left_px, new_left_px))
-        new_top_px = max(0, min(max_top_px, new_top_px))
-        try:
-            self.viewport.xview_moveto(new_left_px / max(1, content_w_after))
-            self.viewport.yview_moveto(new_top_px / max(1, content_h_after))
-        except Exception:
-            pass
-        # Debug logging removed.
-
-    def _on_det_pan_start(self, event):
-        bbox = self.viewport.bbox('all')
-        if not bbox:
-            return
-        self._pan_active = True
-        self._pan_start_root = (int(event.x_root), int(event.y_root))
-        self._pan_start_scroll = (self.viewport.xview()[0], self.viewport.yview()[0])
-        self._pan_content_size = (bbox[2] - bbox[0], bbox[3] - bbox[1])
-        try:
-            self.config(cursor='fleur')
-        except Exception:
-            pass
-        # Debug logging removed.
-
-    def _on_det_pan_move(self, event):
-        if not self._pan_active:
-            return
-        (sx, sy) = self._pan_start_root
-        dx = int(event.x_root) - sx
-        dy = int(event.y_root) - sy
-        content_w, content_h = self._pan_content_size
-        vp_w = max(1, self.viewport.winfo_width())
-        vp_h = max(1, self.viewport.winfo_height())
-        start_x_frac, start_y_frac = self._pan_start_scroll
-        start_x_px = start_x_frac * content_w
-        start_y_px = start_y_frac * content_h
-        new_left_px = start_x_px - dx
-        new_top_px = start_y_px - dy
-        max_left_px = max(0, content_w - vp_w)
-        max_top_px = max(0, content_h - vp_h)
-        new_left_px = max(0, min(max_left_px, new_left_px))
-        new_top_px = max(0, min(max_top_px, new_top_px))
-        try:
-            self.viewport.xview_moveto(new_left_px / max(1, content_w))
-            self.viewport.yview_moveto(new_top_px / max(1, content_h))
-        except Exception:
-            pass
-        # Debug logging removed.
-
-    def _on_det_pan_end(self, event):
-        if not self._pan_active:
-            return
-        self._pan_active = False
-        try:
-            self.config(cursor='')
-        except Exception:
-            pass
-        # Debug logging removed.
+        if which == 'illum':
+            old = self._illum_zoom
+            self._illum_zoom = max(0.1, min(10.0, old * factor))
+        else:
+            old = self._fringe_zoom
+            self._fringe_zoom = max(0.1, min(10.0, old * factor))
+        self._zoom_level = self._fringe_zoom
+        if self._last_illum_bgr is not None or self._last_overlay_bgr is not None:
+            self._update_illum_and_fringe(self._last_illum_bgr, self._last_overlay_bgr)
 
     def on_close(self):
         self.destroy()

@@ -18,7 +18,6 @@ class FringeEditorFrame(tk.Frame):
 		super().__init__(master)
 		self._on_apply = on_apply
 		self._on_close = on_close
-		self._own_root = None
 
 		# Data
 		self.mask = None
@@ -34,89 +33,102 @@ class FringeEditorFrame(tk.Frame):
 		self._labels_cache = None
 		self._labels_dirty = True
 
-		# Toolbar
+		# Toolbar with title + help icon (header) and a separate body for controls
 		self.toolbar = ttk.Frame(self)
 		self.toolbar.pack(side="top", fill="x")
+		header = ttk.Frame(self.toolbar)
+		header.pack(side='top', anchor='w', fill='x', pady=(0,4))
+		ttk.Label(header, text='Editor', font=('Segoe UI', 10, 'bold')).pack(side='left')
+		# Canvas-based help icon: thin circle, non-bold '?'
+		try:
+			bg = self.cget('background')
+		except Exception:
+			bg = '#f0f0f0'
+		help_icon = tk.Canvas(header, width=18, height=18, highlightthickness=0, bg=bg)
+		help_icon.create_oval(2,2,16,16, outline='#666', width=1)
+		help_icon.create_text(9,9, text='?', font=('Segoe UI', 9))
+		help_icon.pack(side='left', padx=(6,0))
+		self._attach_tooltip(help_icon, (
+            'Editor Tab Purpose:\n'
+            'This tab allows you to add, remove, connect, or edit\n'
+            'binary fringes with manual precision\n'
+            '\n'
+            'Controls:\n'
+            '- Right-click drag to move image\n'
+            '- Mouse wheel to zoom\n'
+			'- Ctrl + Mouse wheel to adjust brush size\n'
+            '- Left-click drag to Add/Remove black pixels\n'
+            '\n'
+            'Features:\n'
+            '- Load a binary image to edit fringes\n'
+			'- Background brightness: Adjusts background images brightness\n'
+			'- Link endpoints: Connects nearby fringe endpoints based on angle and distance\n'
+            '- Angle: Adjusts angle tolerance of Link endpoint Feature\n'
+			'- Link tolerance: Adjusts distance tolerance of Link endpoint Feature\n'
+			'ie. Endpoints will only links if another endpoint is within the\n'
+			'specified distance and angle constraints.\n'
+			'- Undo last strokes\n'
+			))
+		
+		# Body frame to hold all interactive toolbar widgets (isolated from header layout)
+		self.toolbar_body = ttk.Frame(self.toolbar)
+		self.toolbar_body.pack(side='top', fill='x')
+
 		self._toolbar_items = []
-
-		def add(item):
-			self._toolbar_items.append(item)
-			return item
-
-		add(ttk.Button(self.toolbar, text="Open Binary", command=self.open_binary))
-		add(ttk.Button(self.toolbar, text="Open Background", command=self.open_background))
-		add(ttk.Button(self.toolbar, text="Save As…", command=self.save_binary))
-		add(ttk.Separator(self.toolbar, orient="vertical"))
-
+		def add(item): self._toolbar_items.append(item); return item
+		add(ttk.Button(self.toolbar_body, text="Open Binary", command=self.open_binary))
+		add(ttk.Button(self.toolbar_body, text="Open Background", command=self.open_background))
+		add(ttk.Button(self.toolbar_body, text="Save As…", command=self.save_binary))
+		add(ttk.Separator(self.toolbar_body, orient="vertical"))
 		self.mode_var = tk.StringVar(value="add")
-		add(ttk.Radiobutton(self.toolbar, text="Add Black", value="add", variable=self.mode_var,
-							 command=lambda: self._set_mode("add")))
-		add(ttk.Radiobutton(self.toolbar, text="Remove Black", value="erase", variable=self.mode_var,
-							 command=lambda: self._set_mode("erase")))
-		add(ttk.Separator(self.toolbar, orient="vertical"))
-
+		add(ttk.Radiobutton(self.toolbar_body, text="Add Black", value="add", variable=self.mode_var, command=lambda: self._set_mode("add")))
+		add(ttk.Radiobutton(self.toolbar_body, text="Remove Black", value="erase", variable=self.mode_var, command=lambda: self._set_mode("erase")))
+		add(ttk.Separator(self.toolbar_body, orient="vertical"))
 		self.brush_var = tk.DoubleVar(value=10.0)
-
-		add(ttk.Label(self.toolbar, text="Background brightness"))
+		add(ttk.Label(self.toolbar_body, text="Background brightness"))
 		self.bg_brightness = tk.DoubleVar(value=5.0)
-		self.bg_scale = ttk.Scale(self.toolbar, from_=1.0, to=10.0, orient="horizontal",
-								  variable=self.bg_brightness, command=self._on_bg_brightness_changed)
+		self.bg_scale = ttk.Scale(self.toolbar_body, from_=1.0, to=10.0, orient="horizontal", variable=self.bg_brightness, command=self._on_bg_brightness_changed)
 		add(self.bg_scale)
-		add(ttk.Separator(self.toolbar, orient="vertical"))
-
-		add(ttk.Label(self.toolbar, text="Angle°"))
+		add(ttk.Separator(self.toolbar_body, orient="vertical"))
+		# Place 'Link endpoints' before the angle controls and in the same section
+		add(ttk.Button(self.toolbar_body, text="Link endpoints", command=self._link_endpoints))
+		add(ttk.Label(self.toolbar_body, text="Angle°"))
 		self.angle_deg_var = tk.IntVar(value=40)
 		try:
-			ang_spin = tk.Spinbox(self.toolbar, from_=0, to=45, width=4, textvariable=self.angle_deg_var)
+			ang_spin = tk.Spinbox(self.toolbar_body, from_=0, to=45, width=4, textvariable=self.angle_deg_var)
 		except Exception:
-			ang_spin = tk.Entry(self.toolbar, width=4, textvariable=self.angle_deg_var)
+			ang_spin = tk.Entry(self.toolbar_body, width=4, textvariable=self.angle_deg_var)
 		add(ang_spin)
-
-		add(ttk.Label(self.toolbar, text="Link tol"))
+		add(ttk.Label(self.toolbar_body, text="Link tol (px)"))
 		self.link_tol_var = tk.IntVar(value=10)
 		try:
-			link_spin = tk.Spinbox(self.toolbar, from_=1, to=300, width=4, textvariable=self.link_tol_var)
+			link_spin = tk.Spinbox(self.toolbar_body, from_=1, to=300, width=4, textvariable=self.link_tol_var)
 		except Exception:
-			link_spin = tk.Entry(self.toolbar, width=4, textvariable=self.link_tol_var)
+			link_spin = tk.Entry(self.toolbar_body, width=4, textvariable=self.link_tol_var)
 		add(link_spin)
-
-		add(ttk.Button(self.toolbar, text="½ Angle, 2× Tol", command=self._halve_angle_double_tol))
-		add(ttk.Separator(self.toolbar, orient="vertical"))
-
+		add(ttk.Button(self.toolbar_body, text="½ Angle, 2× Tol", command=self._halve_angle_double_tol))
+		add(ttk.Separator(self.toolbar_body, orient="vertical"))
 		self.show_components_var = tk.BooleanVar(value=False)
-		add(ttk.Checkbutton(self.toolbar, text="Color comps", variable=self.show_components_var,
-							 command=lambda: self._refresh_display(False)))
-
-		add(ttk.Button(self.toolbar, text="Link endpoints", command=self._link_endpoints))
-		add(ttk.Button(self.toolbar, text="Undo", command=self.undo))
-
+		add(ttk.Checkbutton(self.toolbar_body, text="Color comps", variable=self.show_components_var, command=lambda: self._refresh_display(False)))
+		add(ttk.Button(self.toolbar_body, text="Undo", command=self.undo))
 		def _layout_toolbar(event=None):
-			if not self._toolbar_items:
-				return
-			try:
-				self.update_idletasks()
-				avail = max(1, self.toolbar.winfo_width())
-			except Exception:
-				avail = 800
+			if not self._toolbar_items: return
+			try: self.update_idletasks(); avail=max(1,self.toolbar_body.winfo_width())
+			except Exception: avail=800
 			for w in self._toolbar_items:
-				try:
-					w.grid_forget()
-				except Exception:
-					pass
-			row = 0; col = 0; cur_w = 0; pad_x = 6
+				try: w.grid_forget()
+				except Exception: pass
+			row=0; col=0; cur_w=0; pad_x=2
 			for w in self._toolbar_items:
-				try:
-					req = max(1, w.winfo_reqwidth())
-				except Exception:
-					req = 60
-				sticky = 'w'
-				if isinstance(w, ttk.Separator):
-					sticky = 'ns'; req = max(6, min(req, 6))
-				if col > 0 and (cur_w + req + pad_x) > avail:
-					row += 1; col = 0; cur_w = 0
-				w.grid(row=row, column=col, padx=3, pady=2, sticky=sticky)
-				cur_w += req + pad_x; col += 1
-		self.toolbar.bind('<Configure>', _layout_toolbar)
+				try: req=max(1,w.winfo_reqwidth())
+				except Exception: req=60
+				sticky='w'
+				if isinstance(w, ttk.Separator): sticky='ns'; req=max(6,min(req,6))
+				if col>0 and (cur_w+req+pad_x)>avail:
+					row+=1; col=0; cur_w=0
+				w.grid(row=row,column=col,padx=2,pady=2,sticky=sticky)
+				cur_w+=req+pad_x; col+=1
+		self.toolbar_body.bind('<Configure>', _layout_toolbar)
 		_layout_toolbar()
 
 		self.status = ttk.Label(self, text="Open a binary image (0/255) to edit…", anchor="w")
@@ -125,17 +137,58 @@ class FringeEditorFrame(tk.Frame):
 		self.canvas = tk.Canvas(self, bg="gray20", highlightthickness=0)
 		self.canvas.pack(side="top", fill="both", expand=True)
 
-		self.canvas.bind("<Configure>", self._on_canvas_configure)
-		self.canvas.bind("<Button-1>", self._on_paint_start)
-		self.canvas.bind("<B1-Motion>", self._on_paint_move)
-		self.canvas.bind("<ButtonRelease-1>", self._on_paint_end)
-		self.canvas.bind("<Motion>", self._on_mouse_move)
-		self.canvas.bind("<Leave>", self._on_mouse_leave)
-		self.canvas.bind("<Control-MouseWheel>", self._on_ctrl_mouse_wheel)
-		self.canvas.bind("<MouseWheel>", self._on_mouse_wheel)
-		self.canvas.bind("<Button-3>", self._on_pan_start)
-		self.canvas.bind("<B3-Motion>", self._on_pan_move)
-		self.canvas.bind("<ButtonRelease-3>", self._on_pan_end)
+		# Bind canvas interactions: paint (LMB), pan (RMB), zoom (wheel), brush resize (Ctrl+wheel)
+		try:
+			self.canvas.bind('<Configure>', self._on_canvas_configure)
+			# Painting with left mouse
+			self.canvas.bind('<Button-1>', self._on_paint_start)
+			self.canvas.bind('<B1-Motion>', self._on_paint_move)
+			self.canvas.bind('<ButtonRelease-1>', self._on_paint_end)
+			# Panning with right mouse
+			self.canvas.bind('<Button-3>', self._on_pan_start)
+			self.canvas.bind('<B3-Motion>', self._on_pan_move)
+			self.canvas.bind('<ButtonRelease-3>', self._on_pan_end)
+			# Cursor preview
+			self.canvas.bind('<Motion>', self._on_mouse_move)
+			self.canvas.bind('<Leave>', self._on_mouse_leave)
+			# Zoom and brush size
+			self.canvas.bind('<MouseWheel>', self._on_mouse_wheel)
+			self.canvas.bind('<Control-MouseWheel>', self._on_ctrl_mouse_wheel)
+			# Linux/X11 wheel events
+			self.canvas.bind('<Button-4>', self._on_mouse_wheel)
+			self.canvas.bind('<Button-5>', self._on_mouse_wheel)
+			self.canvas.bind('<Control-Button-4>', self._on_ctrl_mouse_wheel)
+			self.canvas.bind('<Control-Button-5>', self._on_ctrl_mouse_wheel)
+		except Exception:
+			pass
+
+	def _attach_tooltip(self, widget, text):
+		"""Attach a hover tooltip to a widget (no side effects on canvas)."""
+		_tip = {'win': None}
+		def show_tip(_e=None):
+			if _tip['win'] is not None: return
+			try:
+				x = widget.winfo_rootx() + widget.winfo_width() + 8
+				y = widget.winfo_rooty() + int(widget.winfo_height()*0.5)
+			except Exception:
+				x = y = 0
+			win = tk.Toplevel(widget); _tip['win'] = win
+			try: win.wm_overrideredirect(True)
+			except Exception: pass
+			try: win.wm_geometry(f"+{x}+{y}")
+			except Exception: pass
+			frame = ttk.Frame(win, borderwidth=1, relief='solid'); frame.pack()
+			lbl = ttk.Label(frame, text=text, justify='left', padding=6); lbl.pack()
+		def hide_tip(_e=None):
+			w = _tip.get('win')
+			if w is not None:
+				try: w.destroy()
+				except Exception: pass
+				_tip['win'] = None
+		try:
+			widget.bind('<Enter>', show_tip); widget.bind('<Leave>', hide_tip)
+		except Exception:
+			pass
 
 		self._bind_to_toplevel("<Control-z>", lambda e: self.undo())
 		self._bind_to_toplevel("<Key-a>", lambda e: self._set_mode("add"))
@@ -148,18 +201,7 @@ class FringeEditorFrame(tk.Frame):
 		self._pan_start = (0, 0)
 		self._offset_start = (0, 0)
 
-		self._notebook_ref = None
-		try:
-			tl = self.winfo_toplevel()
-			for child in tl.winfo_children():
-				try:
-					if isinstance(child, ttk.Notebook):
-						self._notebook_ref = child
-						break
-				except Exception:
-					pass
-		except Exception:
-			self._notebook_ref = None
+		# _notebook_ref discovery removed (unused)
 
 	def set_data(self, mask: np.ndarray, background: np.ndarray | None = None):
 		if mask is None:
@@ -427,14 +469,7 @@ class FringeEditorFrame(tk.Frame):
 			try: self._update_cursor_circle(self._last_mouse_pos[0], self._last_mouse_pos[1])
 			except Exception: pass
 
-	def _canvas_to_image_coords(self, x_canvas, y_canvas):
-		if self.mask is None: return None
-		x0, y0 = getattr(self, "_img_topleft", (0, 0))
-		scale = self._scale if self._scale > 0 else 1.0
-		xi = int((x_canvas - x0) / scale); yi = int((y_canvas - y0) / scale)
-		h, w = self.mask.shape[:2]
-		if xi < 0 or yi < 0 or xi >= w or yi >= h: return None
-		return xi, yi
+	# int-rounded canvas->image helper removed (unused)
 
 	def _apply_brush(self, xi, yi):
 		if self.mask is None: return
@@ -499,44 +534,7 @@ class FringeEditorFrame(tk.Frame):
 		if xi < 0 or yi < 0 or xi >= w or yi >= h: return None
 		return xi, yi
 
-	def _global_event_to_image_coords(self, event):
-		if self.mask is None: return None
-		try:
-			x_c = int(event.x_root) - int(self.canvas.winfo_rootx())
-			y_c = int(event.y_root) - int(self.canvas.winfo_rooty())
-		except Exception:
-			return None
-		x0, y0 = getattr(self, "_img_topleft", (0, 0))
-		scale = self._scale if self._scale > 0 else 1.0
-		xi = (x_c - x0) / scale; yi = (y_c - y0) / scale
-		return xi, yi
-
-	def _on_global_paint_start(self, event):
-		if self.mask is None: return
-		self._painting = True; self._on_global_paint_move(event)
-
-	def _on_global_paint_move(self, event):
-		if self.mask is None or not self._painting: return
-		pt = self._global_event_to_image_coords(event)
-		if pt is None: return
-		xi_f, yi_f = pt
-		try: r = float(max(0.1, self.brush_var.get()))
-		except Exception: r = 1.0
-		h, w = self.mask.shape[:2]
-		if (xi_f + r) < 0 or (yi_f + r) < 0 or (xi_f - r) > (w - 1) or (yi_f - r) > (h - 1): return
-		xi = float(xi_f); yi = float(yi_f)
-		y_min = int(max(0, np.floor(yi - r))); y_max = int(min(h - 1, np.ceil(yi + r)))
-		x_min = int(max(0, np.floor(xi - r))); x_max = int(min(w - 1, np.ceil(xi + r)))
-		if y_max >= y_min and x_max >= x_min:
-			yy, xx = np.ogrid[y_min:y_max + 1, x_min:x_max + 1]
-			circle = (xx - xi) ** 2 + (yy - yi) ** 2 <= (r * r)
-			color = 0 if self.mode_var.get() == "add" else 255
-			sub = self.mask[y_min:y_max + 1, x_min:x_max + 1]
-			sub[circle] = color
-			self._labels_dirty = True; self._refresh_display()
-
-	def _on_global_paint_end(self, event):
-		self._painting = False
+	# Global paint handlers removed (unused)
 
 	def _on_pan_start(self, event):
 		self._panning = True
@@ -596,7 +594,13 @@ class FringeEditorFrame(tk.Frame):
 			if getattr(event, "state", 0) & 0x4: return
 		except Exception: pass
 		if self.mask is None: return
-		delta = int(getattr(event, "delta", 0));
+		# Support Windows (delta) and X11 (<Button-4>/<Button-5>) events
+		delta = int(getattr(event, "delta", 0))
+		if delta == 0:
+			# Fallback for Linux where MouseWheel isn't delivered; use event.num
+			num = getattr(event, 'num', None)
+			if num == 4: delta = 120
+			elif num == 5: delta = -120
 		if delta == 0: return
 		zoom_factor = 1.1 if delta > 0 else 0.9
 		old_zoom = self._zoom; new_zoom = max(0.1, min(16.0, old_zoom * zoom_factor))
@@ -610,7 +614,13 @@ class FringeEditorFrame(tk.Frame):
 		self._last_mouse_pos = (x_c, y_c); self._update_cursor_circle(x_c, y_c)
 
 	def _on_ctrl_mouse_wheel(self, event):
-		delta = int(getattr(event, "delta", 0)); step = 1.0 if delta > 0 else -1.0
+		# Brush size adjust with Ctrl+Wheel (Windows) or Control-Button-4/5 (X11)
+		delta = int(getattr(event, "delta", 0))
+		if delta == 0:
+			num = getattr(event, 'num', None)
+			if num == 4: delta = 120
+			elif num == 5: delta = -120
+		step = 1.0 if delta > 0 else -1.0
 		new_size = float(self.brush_var.get()) + step; new_size = max(0.1, min(200.0, new_size))
 		self.brush_var.set(new_size); self._last_mouse_pos = (event.x, event.y); self._update_cursor_circle(event.x, event.y)
 

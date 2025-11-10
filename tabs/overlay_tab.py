@@ -30,6 +30,40 @@ class OverlayTabFrame(ttk.Frame):
 
     def _build_ui(self):
         ctrl = ttk.Frame(self); ctrl.pack(side='left', fill='y', padx=8, pady=8); ctrl.config(width=260); ctrl.pack_propagate(False)
+        # Title + help icon
+        title_row = ttk.Frame(ctrl); title_row.pack(anchor='w', fill='x')
+        ttk.Label(title_row, text='Overlay', font=('Segoe UI', 10, 'bold')).pack(side='left')
+        def make_help_icon(parent, tooltip_text):
+            # Canvas-based thin circle with non-bold question mark
+            try:
+                bg = self.cget('background')
+            except Exception:
+                bg = '#f0f0f0'
+            c = tk.Canvas(parent, width=18, height=18, highlightthickness=0, bg=bg)
+            c.create_oval(2, 2, 16, 16, outline='#666', width=1)
+            c.create_text(9, 9, text='?', font=('Segoe UI', 9))
+            c.pack(side='left', padx=(6,0))
+            self._attach_tooltip(c, tooltip_text)
+            return c
+        make_help_icon(title_row, (
+            'Overlay Tab Purpose\n'
+            'Used to align a Reference and Shot image then crop both\n'
+            'to the same dimensions\n'
+            '\n'
+            'Controls:\n'
+            '- Right-click drag to move both images\n'
+            '- Left-click drag to move Shot image\n'
+            '- Mouse wheel to zoom\n'
+            '- Arrow keys for 1px adjustment of Shot image\n'
+            '\n'
+            'Features:\n'
+            '- Load Reference and Shot images from RawImages\n'
+            '- Shot opacity: Change opacity of Shot image\n'
+            '- Brightness sliders: Adjust brightness of each image\n'
+            '- Crop mode: Define and apply crop to both images\n'
+            '- Nudge buttons for 1px adjustment of Shot image\n'
+            '- Save Reference and Shot images to EditedImages\n'
+        ))
         ttk.Button(ctrl, text='Load Reference Image', command=self._load_ref).pack(anchor='w', pady=4)
         ttk.Button(ctrl, text='Load Shot Image', command=self._load_shot).pack(anchor='w', pady=4)
         ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
@@ -84,6 +118,33 @@ class OverlayTabFrame(ttk.Frame):
         ttk.Button(save_row,text='Save Shot Image',command=self._save_shot).pack(side='left')
         right = ttk.Frame(self); right.pack(side='left', fill='both', expand=True, padx=8, pady=8); right.pack_propagate(False)
         self.canvas = tk.Canvas(right,bg='black', highlightthickness=0); self.canvas.pack(fill='both', expand=True)
+
+    def _attach_tooltip(self, widget, text):
+        tip = {'win': None}
+        def show_tip(_e=None):
+            if tip['win'] is not None: return
+            try:
+                x = widget.winfo_rootx() + widget.winfo_width() + 8
+                y = widget.winfo_rooty() + int(widget.winfo_height()*0.5)
+            except Exception:
+                x = y = 0
+            win = tk.Toplevel(widget); tip['win'] = win
+            try: win.wm_overrideredirect(True)
+            except Exception: pass
+            try: win.wm_geometry(f"+{x}+{y}")
+            except Exception: pass
+            frame = ttk.Frame(win, borderwidth=1, relief='solid'); frame.pack()
+            lbl = ttk.Label(frame, text=text, justify='left', padding=6); lbl.pack()
+        def hide_tip(_e=None):
+            w = tip.get('win')
+            if w is not None:
+                try: w.destroy()
+                except Exception: pass
+                tip['win'] = None
+        try:
+            widget.bind('<Enter>', show_tip); widget.bind('<Leave>', hide_tip)
+        except Exception:
+            pass
 
     def _bind_events(self):
         self.canvas.bind('<Configure>', self._on_canvas_configure)

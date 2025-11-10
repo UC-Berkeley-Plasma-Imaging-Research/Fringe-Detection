@@ -1,81 +1,36 @@
 # SpellBook — Fringe Detection & Overlay App
 
-This repository provides a small GUI app to perform even-illumination correction and fringe extraction on images. The code has been reorganized so distribution ZIPs contain a single top-level script plus a package folder containing helpers.
+SpellBook is a Tkinter-based desktop tool for:
+1. Preprocessing (even illumination / contrast enhancement)
+2. Automatic fringe (line) detection & skeletonization
+3. Manual mask touch‑up (add/remove/link endpoints)
+4. Overlay visualization for quality review
 
-What’s in this repo
-`SpellBook.py` — the top-level script to run the GUI app.
-- `tabs/` — UI tabs, including `overlay_tab.py` and `fringe_editor.py`.
-- `fringe_detection/` — package containing helper modules (`shading_pipeline`, `fringe_utils`, `ui_helpers`).
-- `requirements.txt` — runtime dependencies.
+---
+## 1. Repository Layout
 
-Run as Python scripts (no build/release required)
+| Path | Purpose |
+|------|---------|
+| `SpellBook.py` | Entry point launching the GUI (Overlay, Detection, Editor tabs). |
+| `fringe_detection/` | Processing helpers: shading pipeline, binarization & oriented opening utilities. |
+| `tabs/overlay_tab.py` | Overlay/registration & cropping UI. |
+| `tabs/fringe_editor.py` | Interactive binary mask editor (paint + link endpoints). |
+| `mixins/viewport_rendering.py` | Shared viewport zoom/pan helpers (legacy mixin). |
+| `requirements.txt` | Python dependencies. |
 
-1) Create and activate a virtual environment (Windows PowerShell):
+---
+## 2. Quick Start (Windows PowerShell)
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-2) Install dependencies:
-
-```powershell
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-3) Run the app:
-
-```powershell
-python SpellBook.py
-```
-
-   Notes
-   - The app uses OpenCV (`opencv-python`), scikit-image, and Pillow; these normally install as binary wheels. On some platforms (or Python versions) pip may attempt to build from source and will require build tools.
-   - If you want a single-file EXE later the repo includes PyInstaller support and a GitHub Actions workflow that builds a Windows executable when you push a tag starting with `v`.
-
-   License
-   - Add a license file if you want to publish this project (e.g., `LICENSE` with MIT/GPL text).
-
-   Contact
-   - For collaboration or questions, add contact info or a project maintainer email.
-
-   ## Downloads
-
-   Pre-built release assets (Windows ZIPs) are produced automatically by the repository's GitHub Actions workflow when a tag starting with `v` is pushed (for example `v1.0.0`). Those assets are attached to the corresponding GitHub Release. To download:
-
-   - Visit the repository on GitHub and click the Releases tab. Download the ZIP for the latest Windows build.
-
-   Building locally
-
-   If you prefer to build locally (Windows), you can produce a single-file executable using PyInstaller — update the command to point at `SpellBook.py`:
-
-```powershell
-python -m pip install --upgrade pip
-pip install -r requirements.txt pyinstaller
-pyinstaller --noconfirm --onefile --name "SpellBook" SpellBook.py
-# The executable will be in the dist\ folder: dist\SpellBook.exe
-```
-
-Run from a downloaded ZIP (Windows)
-
-If you distribute a ZIP with the repo contents, the top-level folder will contain `SpellBook.py` and the `fringe_detection/` package. A simple set of steps for non-developers:
-
-```powershell
-# Extract the ZIP to a folder, open PowerShell in that folder
-python -m venv .venv
-\.\.venv\Scripts\Activate.ps1
+./.venv/Scripts/Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 python SpellBook.py
 ```
 
-Run on macOS
-
-Use the same venv + pip workflow but replace PowerShell commands with shell commands and `python`/`python3` as appropriate:
-
+macOS / Linux (bash):
 ```bash
-cd /path/to/Fringe-Detection
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
@@ -83,28 +38,124 @@ pip install -r requirements.txt
 python SpellBook.py
 ```
 
-If binary wheel installation fails on macOS (especially Apple Silicon), consider using Miniforge/conda to get prebuilt packages.
+If wheel installation fails (e.g. on Apple Silicon), use a Conda/Miniforge environment.
 
-   Creating a release
+---
+## 3. Tutorial Walkthrough
 
-   To create a release that triggers the GitHub Actions build and uploads an asset:
+### Step 0: Prepare Your Images
+Place raw input images in a convenient folder. Supported formats: PNG / TIFF / JPG. High bit‑depth TIFFs are internally normalized to 8‑bit for display.
 
-   1. Create and push a tag from your local machine (PowerShell):
+### Step 1: Launch & Load (Detection Tab)
+1. Click `Browse & Load` to pick an image.
+2. Adjust preprocessing sliders:
+   - Blur σ: mild Gaussian smoothing for noise reduction.
+   - CLAHE clip & tile: local contrast expansion; high clip increases contrast, tile defines grid size.
+3. Original overlay (optional): blend some of the original intensity back into processed views for context.
 
-   ```powershell
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
+The two center viewers show:
+| Viewer | Content |
+|--------|---------|
+| Illumination | Enhanced grayscale (after shading + contrast). |
+| Fringe Overlay | Detected fringe skeleton overlayed (green/colored) on processed background. |
 
-   2. GitHub Actions will run the workflow and attach a ZIP asset to the Release created for that tag.
+Zoom: mouse wheel (each viewer independent). Pan: right‑click drag. Status bar shows current zoom.
 
-   Notes and troubleshooting
+### Step 2: Tune Fringe Detection
+Right panel sliders:
+| Slider | Effect |
+|--------|--------|
+| Kernel length | Line structuring element length for oriented opening (line extraction). |
+| Kernel thickness | Line thickness assumption. |
+| Angle ± / Angle step | Angular sweep around horizontal for oriented opening (coverage vs. speed). |
+| Dilate px | Thickens detected ridges before skeletonization. |
+| Min area | Removes small specks before skeletonizing. |
+| Background fade | Dims background under overlay for visibility. |
 
-   - The workflow currently builds a Windows executable using Python 3.11 on `windows-latest` runners. If you need macOS or Linux builds, we can add additional jobs.
-   - If PyInstaller misses any dynamic libraries (rare for OpenCV/scikit-image), the local build log will show missing DLLs; bundling fixes can be applied in the workflow or by editing the PyInstaller spec.
+After adjustments the overlay viewer updates automatically (debounced ~180 ms).
 
-## Notes
+### Step 3: Save Automatic Result
+Click `Save Fringes as Binary` to export the current binary mask (0 = fringe, 255 = background).
 
-- Overlay tab: Compare a reference and a shot image with adjustable shot opacity, cursor-anchored zoom, right-click pan, and shared crop overlay. Only the shot moves when dragging; the reference stays anchored. Save Reference and Save Shot buttons are included.
-- Editor tab: A lightweight fringe mask editor for fine manual touch-ups (paint add/remove with adjustable brush size, endpoint linking, undo).
-- Example assets: If you keep a sample folder, use `EditedImages/` (renamed from `Images/`). Update paths accordingly in your workflows.
+### Step 4: Fine Editing (Editor Tab)
+Switch to `Editor`:
+1. `Open Binary` – load a saved mask OR create one from an image (thresholded automatically).
+2. (Optional) `Open Background` – load a grayscale backdrop for contextual editing.
+3. Mode radio buttons: `Add Black` paints fringe (sets pixels to 0); `Remove Black` erases fringe (sets to 255).
+4. Mouse:
+   - Left drag: paint / erase.
+   - Ctrl + wheel: change brush radius.
+   - Wheel: zoom.
+   - Right drag: pan.
+5. `Link endpoints` + Angle / Link tol (px): connect nearby skeleton endpoints within tolerance & angular constraint.
+6. `½ Angle, 2× Tol` quickly broadens search tolerance while tightening angle.
+7. `Color comps` optionally pseudo‑colors connected components.
+8. `Undo` reverts last stroke (stack depth 20).
+
+No mask is auto‑loaded into the Editor; you decide when to load or import one.
+
+### Step 5: Iterate & Export
+Refine, then `Save As…` in the Editor for a cleaned fringe mask. Use saved masks for downstream analysis or comparison.
+
+---
+## 4. Design Notes
+| Aspect | Choice |
+|--------|--------|
+| Independent zoom | Each viewer maintains its own zoom state for local inspection. |
+| Skeletonization | Uses `skimage.morphology.skeletonize` on prefiltered binary. |
+| Oriented opening | Sweeps discrete angles (± range, given step) with line structuring elements for ridge isolation. |
+| Endpoint linking | Brute-force within radius + angle gate + component separation. |
+| Performance | Debounced slider changes; uses integer structuring elements. |
+
+---
+## 5. Building a Standalone Executable (Windows)
+```powershell
+python -m pip install --upgrade pip
+pip install -r requirements.txt pyinstaller
+pyinstaller --noconfirm --onefile --name "SpellBook" SpellBook.py
+```
+Binary appears in `dist/SpellBook.exe`.
+
+GitHub Actions can be configured to run this on tag push (e.g. `v1.2.0`).
+
+---
+## 6. Troubleshooting
+| Issue | Fix |
+|-------|-----|
+| Wheel zoom not working | Ensure window focus; on Linux use `<Button-4>/<Button-5>` events. |
+| Missing DLL (OpenCV) | Reinstall with `pip install --force-reinstall opencv-python`. |
+| Slow large images | Reduce Blur σ & CLAHE tile; disable Color comps during editing. |
+| No fringes detected | Increase kernel length, lower Min area, adjust Angle ±. |
+
+---
+## 7. Contributing
+1. Fork & branch: `git checkout -b feature/xyz`.
+2. Keep UI changes minimal per commit.
+3. Run lint/tests (add if missing) before PR.
+
+---
+## 8. License & Contact
+Add `LICENSE` (MIT recommended) and maintainer contact/email here.
+
+---
+## 9. At-a-Glance Commands
+```powershell
+# Setup
+python -m venv .venv; ./.venv/Scripts/Activate.ps1
+pip install -r requirements.txt
+
+# Run
+python SpellBook.py
+
+# Build executable
+pyinstaller --onefile --name SpellBook SpellBook.py
+```
+
+---
+## 10. FAQ
+**Q: Why two viewers?** Independent inspection of raw enhancement vs. overlay.
+**Q: Why isn’t the Editor auto-filled?** Manual control prevents accidental edits; load explicitly.
+**Q: Units of link tolerance?** Pixels in original image coordinates.
+
+---
+Happy detecting and editing! Feel free to open issues for feature requests.
