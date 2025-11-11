@@ -12,6 +12,7 @@ from fringe_detection import pipeline_shading_sauvola, read_gray
 from fringe_detection import binarize, oriented_opening, overlay_mask_on_gray
 from fringe_detection import make_slider_row, to_photoimage_from_bgr_with_scale
 from tabs.overlay_tab import OverlayTabFrame
+from tabs.dual_view_tab import DualViewTabFrame
 from mixins.viewport_rendering import ViewportRenderingMixin
 
 
@@ -186,14 +187,13 @@ class EvenApp(ViewportRenderingMixin, tk.Tk):
         bind_viewer(self.illum_canvas, 'illum')
         bind_viewer(self.fringe_canvas, 'fringe')
 
+        # Editor tab
         editor_tab = ttk.Frame(self.notebook)
         self.notebook.add(editor_tab, text='Editor')
-
         try:
             from tabs.fringe_editor import FringeEditorFrame
         except Exception:
             FringeEditorFrame = None
-
         self._editor_frame = None
         if FringeEditorFrame is not None:
             def on_apply(mask, _bg):
@@ -217,6 +217,13 @@ class EvenApp(ViewportRenderingMixin, tk.Tk):
 
             self._editor_frame = FringeEditorFrame(editor_tab, on_apply=on_apply, on_close=on_close)
             self._editor_frame.pack(fill='both', expand=True)
+
+        # New Dual-View tab (Binary + Opacity)
+        try:
+            dual_tab = DualViewTabFrame(self.notebook, status_callback=self.set_status)
+            self.notebook.add(dual_tab, text='Binary Blend')
+        except Exception:
+            pass
 
     # (Title already added at top of right panel)
 
