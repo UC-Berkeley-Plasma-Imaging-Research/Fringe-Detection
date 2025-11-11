@@ -49,6 +49,13 @@ class EvenApp(ViewportRenderingMixin, tk.Tk):
         except Exception:
             self._overlay_frame = None
 
+        # Dual View tab (load once, view twice)
+        try:
+            dual_view = DualViewTabFrame(self.notebook, status_callback=self.set_status)
+            self.notebook.add(dual_view, text='Dual View')
+        except Exception:
+            pass
+
         detect_tab = ttk.Frame(self.notebook)
         self.notebook.add(detect_tab, text='Detection')
 
@@ -187,13 +194,14 @@ class EvenApp(ViewportRenderingMixin, tk.Tk):
         bind_viewer(self.illum_canvas, 'illum')
         bind_viewer(self.fringe_canvas, 'fringe')
 
-        # Editor tab
         editor_tab = ttk.Frame(self.notebook)
         self.notebook.add(editor_tab, text='Editor')
+
         try:
             from tabs.fringe_editor import FringeEditorFrame
         except Exception:
             FringeEditorFrame = None
+
         self._editor_frame = None
         if FringeEditorFrame is not None:
             def on_apply(mask, _bg):
@@ -217,13 +225,6 @@ class EvenApp(ViewportRenderingMixin, tk.Tk):
 
             self._editor_frame = FringeEditorFrame(editor_tab, on_apply=on_apply, on_close=on_close)
             self._editor_frame.pack(fill='both', expand=True)
-
-        # New Dual-View tab (Binary + Opacity)
-        try:
-            dual_tab = DualViewTabFrame(self.notebook, status_callback=self.set_status)
-            self.notebook.add(dual_tab, text='Binary Blend')
-        except Exception:
-            pass
 
     # (Title already added at top of right panel)
 
