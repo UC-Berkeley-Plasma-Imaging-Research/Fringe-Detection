@@ -97,15 +97,21 @@ class ZoomPanHandler:
                 # Fallback to center
                 mouse_x = self.widget.winfo_width() // 2
                 mouse_y = self.widget.winfo_height() // 2
-
+            # Current bbox BEFORE redraw to derive anchor in image space
+            bbox_before = self.widget.bbox('all')
+            if bbox_before:
+                width_before = float(bbox_before[2] - bbox_before[0])
+                height_before = float(bbox_before[3] - bbox_before[1])
+            else:
+                width_before = 1.0
+                height_before = 1.0
             left_px_before = float(self.widget.canvasx(0))
             top_px_before = float(self.widget.canvasy(0))
-            canvas_x_before = left_px_before + float(mouse_x)
-            canvas_y_before = top_px_before + float(mouse_y)
+            # Anchor in unscaled image coordinates (divide by old zoom)
+            anchor_img_x = (left_px_before + float(mouse_x)) / max(old_zoom, 1e-9)
+            anchor_img_y = (top_px_before + float(mouse_y)) / max(old_zoom, 1e-9)
 
-            zoom_ratio = float(new_zoom) / float(old_zoom) if old_zoom != 0 else 1.0
-
-            # update zoom and redraw
+            # Apply zoom & redraw
             self.set_zoom(new_zoom)
             try:
                 self.rescale_callback()
@@ -116,43 +122,77 @@ class ZoomPanHandler:
             except Exception:
                 pass
 
-            # Compute where the canvas point moved to after rescale and move view to keep pointer
-            canvas_x_after = canvas_x_before * zoom_ratio
-            canvas_y_after = canvas_y_before * zoom_ratio
-
-            bbox_after = self.widget.bbox('all')
-            if bbox_after:
-                bbox_width = float(bbox_after[2] - bbox_after[0])
-                bbox_height = float(bbox_after[3] - bbox_after[1])
-                vp_w = max(1.0, float(self.widget.winfo_width()))
-                vp_h = max(1.0, float(self.widget.winfo_height()))
-                new_left_px = canvas_x_after - float(mouse_x)
-                new_top_px = canvas_y_after - float(mouse_y)
-                max_left = max(0.0, bbox_width - vp_w)
-                max_top = max(0.0, bbox_height - vp_h)
-                new_left_px = min(max(new_left_px, 0.0), max_left)
-                new_top_px = min(max(new_top_px, 0.0), max_top)
-                new_x_fraction = new_left_px / bbox_width if bbox_width > 0 else 0.0
-                new_y_fraction = new_top_px / bbox_height if bbox_height > 0 else 0.0
+            # Determine extents from scrollregion when available; fallback to bbox('all')
+            try:
+                sr = self.widget.cget('scrollregion')
+            except Exception:
+                sr = None
+            if sr:
                 try:
-                    self.widget.xview_moveto(max(0.0, min(1.0, new_x_fraction)))
-                    self.widget.yview_moveto(max(0.0, min(1.0, new_y_fraction)))
+                    x0, y0, x1, y1 = map(float, str(sr).split())
+                    min_x = x0; min_y = y0
+                    width_after = max(1.0, x1 - x0)
+                    height_after = max(1.0, y1 - y0)
                 except Exception:
-                    pass
+                    bbox_after = self.widget.bbox('all')
+                    min_x = float(bbox_after[0]) if bbox_after else 0.0
+                    min_y = float(bbox_after[1]) if bbox_after else 0.0
+                    width_after = float(bbox_after[2] - bbox_after[0]) if bbox_after else 1.0
+                    height_after = float(bbox_after[3] - bbox_after[1]) if bbox_after else 1.0
+            else:
+                bbox_after = self.widget.bbox('all')
+                min_x = float(bbox_after[0]) if bbox_after else 0.0
+                min_y = float(bbox_after[1]) if bbox_after else 0.0
+                width_after = float(bbox_after[2] - bbox_after[0]) if bbox_after else 1.0
+                height_after = float(bbox_after[3] - bbox_after[1]) if bbox_after else 1.0
+
+            # Viewport size
+            vp_w = max(1.0, float(self.widget.winfo_width()))
+            vp_h = max(1.0, float(self.widget.winfo_height()))
+            # Desired new top-left so that anchor stays under pointer
+            anchor_abs_x_after = anchor_img_x * new_zoom
+            anchor_abs_y_after = anchor_img_y * new_zoom
+            new_left_px = anchor_abs_x_after - float(mouse_x)
+            new_top_px = anchor_abs_y_after - float(mouse_y)
+            # Clamp to extents (allow negative minima)
+            max_left = (min_x + width_after) - vp_w
+            max_top = (min_y + height_after) - vp_h
+            new_left_px = min(max(new_left_px, min_x), max_left if max_left > min_x else min_x)
+            new_top_px = min(max(new_top_px, min_y), max_top if max_top > min_y else min_y)
+            # Convert to fractions relative to scrollregion
+            new_x_fraction = (new_left_px - min_x) / width_after if width_after > 0 else 0.0
+            new_y_fraction = (new_top_px - min_y) / height_after if height_after > 0 else 0.0
+            try:
+                self.widget.xview_moveto(max(0.0, min(1.0, new_x_fraction)))
+                self.widget.yview_moveto(max(0.0, min(1.0, new_y_fraction)))
+            except Exception:
+                pass
         except Exception:
             # swallow exceptions to avoid breaking UI
             pass
 
     def _get_scroll_offsets_px(self):
         try:
-            bbox = self.widget.bbox('all')
-            if not bbox:
-                return 0.0, 0.0, 1.0, 1.0
-            width = float(bbox[2] - bbox[0])
-            height = float(bbox[3] - bbox[1])
+            sr = None
+            try:
+                sr = self.widget.cget('scrollregion')
+            except Exception:
+                sr = None
+            if sr:
+                x0, y0, x1, y1 = map(float, str(sr).split())
+                min_x = x0; min_y = y0
+                width = max(1.0, x1 - x0)
+                height = max(1.0, y1 - y0)
+            else:
+                bbox = self.widget.bbox('all')
+                if not bbox:
+                    return 0.0, 0.0, 1.0, 1.0
+                min_x = float(bbox[0]); min_y = float(bbox[1])
+                width = float(bbox[2] - bbox[0])
+                height = float(bbox[3] - bbox[1])
             x_frac0 = self.widget.xview()[0]
             y_frac0 = self.widget.yview()[0]
-            return x_frac0 * width, y_frac0 * height, width, height
+            return min_x + x_frac0 * width, min_y + y_frac0 * height, width, height
         except Exception:
             return 0.0, 0.0, 1.0, 1.0
 
@@ -181,9 +221,31 @@ class ZoomPanHandler:
             start_x_px, start_y_px = self._drag_scroll_start_px
             new_x_px = start_x_px - dx
             new_y_px = start_y_px - dy
-            _, _, width, height = self._get_scroll_offsets_px()
-            new_x_frac = 0.0 if width <= 0 else max(0.0, min(1.0, new_x_px / width))
-            new_y_frac = 0.0 if height <= 0 else max(0.0, min(1.0, new_y_px / height))
+            # Determine extents and normalize to fractions relative to min
+            try:
+                sr = self.widget.cget('scrollregion')
+            except Exception:
+                sr = None
+            if sr:
+                try:
+                    x0, y0, x1, y1 = map(float, str(sr).split())
+                    min_x = x0; min_y = y0
+                    width = max(1.0, x1 - x0)
+                    height = max(1.0, y1 - y0)
+                except Exception:
+                    bbox = self.widget.bbox('all')
+                    min_x = float(bbox[0]) if bbox else 0.0
+                    min_y = float(bbox[1]) if bbox else 0.0
+                    width = float(bbox[2] - bbox[0]) if bbox else 1.0
+                    height = float(bbox[3] - bbox[1]) if bbox else 1.0
+            else:
+                bbox = self.widget.bbox('all')
+                min_x = float(bbox[0]) if bbox else 0.0
+                min_y = float(bbox[1]) if bbox else 0.0
+                width = float(bbox[2] - bbox[0]) if bbox else 1.0
+                height = float(bbox[3] - bbox[1]) if bbox else 1.0
+            new_x_frac = 0.0 if width <= 0 else max(0.0, min(1.0, (new_x_px - min_x) / width))
+            new_y_frac = 0.0 if height <= 0 else max(0.0, min(1.0, (new_y_px - min_y) / height))
             try:
                 self.widget.xview_moveto(new_x_frac)
                 self.widget.yview_moveto(new_y_frac)

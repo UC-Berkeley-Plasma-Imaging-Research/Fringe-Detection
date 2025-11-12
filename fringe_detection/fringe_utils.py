@@ -44,7 +44,7 @@ def oriented_opening(bw01, length, thickness, max_angle=8.0, step=2.0):
     return out
 
 
-def overlay_mask_on_gray(gray, mask01, line_alpha=0.85, bg_fade=0.4, bg_to='white', line_color=(255, 0, 0)):
+def overlay_mask_on_gray(gray, mask01, line_alpha=0.85, bg_fade=0.0, bg_to='white', line_color=(255, 0, 0)):
     """Overlay a 0/1 mask onto a grayscale image.
     Accepts gray as uint8 (or other types, normalized to uint8) and mask01 as 0/1 (bool or uint8).
     Handles minor size mismatches by resizing mask.

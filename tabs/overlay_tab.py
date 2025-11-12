@@ -300,12 +300,20 @@ class OverlayTabFrame(ttk.Frame):
         self._photo=photo; self._img_id=self.canvas.create_image(vx0,vy0,anchor='nw',image=photo); self._redraw_crop_overlay()
 
     def _shade_crop(self,comp,ref_shift,view_origin,crop_ix_origin,scale):
-        x,y,w,h=self._crop_rect; rx,ry=ref_shift; vx0,vy0=view_origin
-        cx0=int(round(vx0 + (rx + x - crop_ix_origin[0])*scale)); cy0=int(round(vy0 + (ry + y - crop_ix_origin[1])*scale))
-        cx1=int(round(vx0 + (rx + x + w - crop_ix_origin[0])*scale)); cy1=int(round(vy0 + (ry + y + h - crop_ix_origin[1])*scale))
-        H,W=comp.shape[:2]; mask=np.zeros((H,W),dtype=np.uint8); mask[:]=70
+        # Compute crop rectangle strictly in comp (image) coordinates so it stays aligned when panning/zooming.
+        x,y,w,h=self._crop_rect; rx,ry=ref_shift
+        # Top-left of the visible comp (in world index space)
+        ix0, iy0 = crop_ix_origin
+        # Convert world-space crop rect -> comp-space pixels; don't add view_origin (canvas offset)
+        cx0=int(round((rx + x     - ix0)*scale)); cy0=int(round((ry + y     - iy0)*scale))
+        cx1=int(round((rx + x + w - ix0)*scale)); cy1=int(round((ry + y + h - iy0)*scale))
+        H,W=comp.shape[:2]
+        # Clamp to comp bounds
         cx0=max(0,min(W,cx0)); cy0=max(0,min(H,cy0)); cx1=max(0,min(W,cx1)); cy1=max(0,min(H,cy1))
-        mask[cy0:cy1,cx0:cx1]=0; return (comp.astype(np.int16)-mask[...,None]).clip(0,255).astype(np.uint8)
+        # Build dimming mask: dim outside the crop, keep crop area undimmed
+        mask=np.zeros((H,W),dtype=np.uint8); mask[:]=70
+        mask[cy0:cy1,cx0:cx1]=0
+        return (comp.astype(np.int16)-mask[...,None]).clip(0,255).astype(np.uint8)
 
     def _centered_offset(self,W,H,scale):
         cw=max(1,self.canvas.winfo_width()); ch=max(1,self.canvas.winfo_height())

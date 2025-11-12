@@ -1,0 +1,594 @@
+2025-11-11 04:20:11,225 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=50, thr8=128
+2025-11-11 04:20:11,284 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:20:11,946 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=49, thr8=125
+2025-11-11 04:20:12,009 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:20:12,316 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=47, thr8=120
+2025-11-11 04:20:12,371 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:20:12,679 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=44, thr8=112
+2025-11-11 04:20:12,735 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:20:13,519 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=8, thr8=20
+2025-11-11 04:20:13,573 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:20:13,932 INFO: binary recompute: sigma=1.000, kernel=7, thr_pct=8, thr8=20
+2025-11-11 04:20:13,988 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:20:14,116 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=8, thr8=20
+2025-11-11 04:20:14,170 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:20:14,401 INFO: binary recompute: sigma=4.000, kernel=25, thr_pct=8, thr8=20
+2025-11-11 04:20:14,454 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:20:14,684 INFO: binary recompute: sigma=6.000, kernel=37, thr_pct=8, thr8=20
+2025-11-11 04:20:14,739 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:20:14,959 INFO: binary recompute: sigma=8.000, kernel=49, thr_pct=8, thr8=20
+2025-11-11 04:20:15,015 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:20:15,144 INFO: binary recompute: sigma=9.000, kernel=55, thr_pct=8, thr8=20
+2025-11-11 04:20:15,200 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:20:15,378 INFO: render top: zoom=1.100 img=(2250x2203) cw=(823x287) off=(0,0)
+2025-11-11 04:20:15,433 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:20:15,517 INFO: render top: zoom=0.909 img=(1860x1820) cw=(823x287) off=(0,0)
+2025-11-11 04:20:15,702 INFO: render top: zoom=0.826 img=(1690x1655) cw=(823x287) off=(0,0)
+2025-11-11 04:20:15,764 INFO: render top: zoom=0.751 img=(1537x1504) cw=(823x287) off=(0,0)
+2025-11-11 04:20:15,822 INFO: render top: zoom=0.683 img=(1397x1368) cw=(823x287) off=(0,0)
+2025-11-11 04:20:16,018 INFO: render top: zoom=0.621 img=(1270x1243) cw=(823x287) off=(0,0)
+2025-11-11 04:20:16,065 INFO: render top: zoom=0.564 img=(1154x1130) cw=(823x287) off=(0,0)
+2025-11-11 04:20:16,107 INFO: render top: zoom=0.513 img=(1049x1027) cw=(823x287) off=(0,0)
+2025-11-11 04:20:16,297 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:20:16,334 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:20:16,369 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:16,919 INFO: binary recompute: sigma=8.000, kernel=49, thr_pct=8, thr8=20
+2025-11-11 04:20:16,952 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:17,199 INFO: binary recompute: sigma=6.000, kernel=37, thr_pct=8, thr8=20
+2025-11-11 04:20:17,232 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:17,365 INFO: binary recompute: sigma=5.000, kernel=31, thr_pct=8, thr8=20
+2025-11-11 04:20:17,398 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:17,654 INFO: binary recompute: sigma=3.000, kernel=19, thr_pct=8, thr8=20
+2025-11-11 04:20:17,686 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:17,812 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=8, thr8=20
+2025-11-11 04:20:17,845 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:17,977 INFO: binary recompute: sigma=1.000, kernel=7, thr_pct=8, thr8=20
+2025-11-11 04:20:17,993 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:18,877 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=8, thr8=20
+2025-11-11 04:20:18,893 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:19,360 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=9, thr8=23
+2025-11-11 04:20:19,375 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:19,532 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=10, thr8=26
+2025-11-11 04:20:19,547 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:19,710 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=11, thr8=28
+2025-11-11 04:20:19,726 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:19,861 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=12, thr8=31
+2025-11-11 04:20:19,876 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:20,004 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=13, thr8=33
+2025-11-11 04:20:20,020 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:20,692 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=14, thr8=36
+2025-11-11 04:20:20,707 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:20,843 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=15, thr8=38
+2025-11-11 04:20:20,858 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:20,992 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=16, thr8=41
+2025-11-11 04:20:21,008 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:21,142 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=17, thr8=43
+2025-11-11 04:20:21,158 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:21,292 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=18, thr8=46
+2025-11-11 04:20:21,308 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:20:21,443 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=19, thr8=48
+2025-11-11 04:20:21,458 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:21:53,245 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=50, thr8=128
+2025-11-11 04:21:53,302 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:21:54,702 INFO: slider_change: sigma_var=0.000, thr_pct_var=49
+2025-11-11 04:21:54,823 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=49, thr8=125
+2025-11-11 04:21:54,877 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:21:54,934 INFO: slider_change: sigma_var=0.000, thr_pct_var=48
+2025-11-11 04:21:55,061 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=48, thr8=122
+2025-11-11 04:21:55,116 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:21:55,117 INFO: slider_change: sigma_var=0.000, thr_pct_var=47
+2025-11-11 04:21:55,240 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=47, thr8=120
+2025-11-11 04:21:55,296 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:21:55,677 INFO: slider_change: sigma_var=0.000, thr_pct_var=42
+2025-11-11 04:21:55,693 INFO: slider_change: sigma_var=0.000, thr_pct_var=42
+2025-11-11 04:21:55,705 INFO: slider_change: sigma_var=0.000, thr_pct_var=41
+2025-11-11 04:21:55,712 INFO: slider_change: sigma_var=0.000, thr_pct_var=41
+2025-11-11 04:21:55,723 INFO: slider_change: sigma_var=0.000, thr_pct_var=40
+2025-11-11 04:21:55,731 INFO: slider_change: sigma_var=0.000, thr_pct_var=39
+2025-11-11 04:21:55,738 INFO: slider_change: sigma_var=0.000, thr_pct_var=39
+2025-11-11 04:21:55,739 INFO: slider_change: sigma_var=0.000, thr_pct_var=38
+2025-11-11 04:21:55,746 INFO: slider_change: sigma_var=0.000, thr_pct_var=37
+2025-11-11 04:21:55,751 INFO: slider_change: sigma_var=0.000, thr_pct_var=37
+2025-11-11 04:21:55,756 INFO: slider_change: sigma_var=0.000, thr_pct_var=36
+2025-11-11 04:21:55,758 INFO: slider_change: sigma_var=0.000, thr_pct_var=35
+2025-11-11 04:21:55,762 INFO: slider_change: sigma_var=0.000, thr_pct_var=35
+2025-11-11 04:21:55,768 INFO: slider_change: sigma_var=0.000, thr_pct_var=34
+2025-11-11 04:21:55,772 INFO: slider_change: sigma_var=0.000, thr_pct_var=33
+2025-11-11 04:21:55,774 INFO: slider_change: sigma_var=0.000, thr_pct_var=33
+2025-11-11 04:21:55,780 INFO: slider_change: sigma_var=0.000, thr_pct_var=32
+2025-11-11 04:21:55,784 INFO: slider_change: sigma_var=0.000, thr_pct_var=32
+2025-11-11 04:21:55,788 INFO: slider_change: sigma_var=0.000, thr_pct_var=31
+2025-11-11 04:21:55,791 INFO: slider_change: sigma_var=0.000, thr_pct_var=30
+2025-11-11 04:21:55,795 INFO: slider_change: sigma_var=0.000, thr_pct_var=30
+2025-11-11 04:21:55,802 INFO: slider_change: sigma_var=0.000, thr_pct_var=29
+2025-11-11 04:21:55,807 INFO: slider_change: sigma_var=0.000, thr_pct_var=28
+2025-11-11 04:21:55,809 INFO: slider_change: sigma_var=0.000, thr_pct_var=28
+2025-11-11 04:21:55,815 INFO: slider_change: sigma_var=0.000, thr_pct_var=27
+2025-11-11 04:21:55,823 INFO: slider_change: sigma_var=0.000, thr_pct_var=26
+2025-11-11 04:21:55,830 INFO: slider_change: sigma_var=0.000, thr_pct_var=26
+2025-11-11 04:21:55,832 INFO: slider_change: sigma_var=0.000, thr_pct_var=25
+2025-11-11 04:21:55,839 INFO: slider_change: sigma_var=0.000, thr_pct_var=25
+2025-11-11 04:21:55,846 INFO: slider_change: sigma_var=0.000, thr_pct_var=24
+2025-11-11 04:21:55,851 INFO: slider_change: sigma_var=0.000, thr_pct_var=23
+2025-11-11 04:21:55,855 INFO: slider_change: sigma_var=0.000, thr_pct_var=23
+2025-11-11 04:21:55,861 INFO: slider_change: sigma_var=0.000, thr_pct_var=22
+2025-11-11 04:21:55,867 INFO: slider_change: sigma_var=0.000, thr_pct_var=21
+2025-11-11 04:21:55,872 INFO: slider_change: sigma_var=0.000, thr_pct_var=21
+2025-11-11 04:21:55,879 INFO: slider_change: sigma_var=0.000, thr_pct_var=20
+2025-11-11 04:21:55,882 INFO: slider_change: sigma_var=0.000, thr_pct_var=19
+2025-11-11 04:21:55,888 INFO: slider_change: sigma_var=0.000, thr_pct_var=19
+2025-11-11 04:21:55,896 INFO: slider_change: sigma_var=0.000, thr_pct_var=18
+2025-11-11 04:21:55,902 INFO: slider_change: sigma_var=0.000, thr_pct_var=17
+2025-11-11 04:21:55,903 INFO: slider_change: sigma_var=0.000, thr_pct_var=17
+2025-11-11 04:21:55,911 INFO: slider_change: sigma_var=0.000, thr_pct_var=16
+2025-11-11 04:21:55,918 INFO: slider_change: sigma_var=0.000, thr_pct_var=16
+2025-11-11 04:21:55,929 INFO: slider_change: sigma_var=0.000, thr_pct_var=15
+2025-11-11 04:21:55,936 INFO: slider_change: sigma_var=0.000, thr_pct_var=14
+2025-11-11 04:21:55,952 INFO: slider_change: sigma_var=0.000, thr_pct_var=14
+2025-11-11 04:21:55,975 INFO: slider_change: sigma_var=0.000, thr_pct_var=13
+2025-11-11 04:21:55,995 INFO: slider_change: sigma_var=0.000, thr_pct_var=12
+2025-11-11 04:21:56,000 INFO: slider_change: sigma_var=0.000, thr_pct_var=12
+2025-11-11 04:21:56,009 INFO: slider_change: sigma_var=0.000, thr_pct_var=11
+2025-11-11 04:21:56,017 INFO: slider_change: sigma_var=0.000, thr_pct_var=10
+2025-11-11 04:21:56,025 INFO: slider_change: sigma_var=0.000, thr_pct_var=10
+2025-11-11 04:21:56,030 INFO: slider_change: sigma_var=0.000, thr_pct_var=9
+2025-11-11 04:21:56,042 INFO: slider_change: sigma_var=0.000, thr_pct_var=8
+2025-11-11 04:21:56,171 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=8, thr8=20
+2025-11-11 04:21:56,225 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:21:56,811 INFO: render top: zoom=0.909 img=(1860x1820) cw=(823x287) off=(0,0)
+2025-11-11 04:21:56,880 INFO: render top: zoom=0.826 img=(1690x1655) cw=(823x287) off=(0,0)
+2025-11-11 04:21:56,943 INFO: render top: zoom=0.751 img=(1537x1504) cw=(823x287) off=(0,0)
+2025-11-11 04:21:57,137 INFO: render top: zoom=0.683 img=(1397x1368) cw=(823x287) off=(0,0)
+2025-11-11 04:21:57,189 INFO: render top: zoom=0.621 img=(1270x1243) cw=(823x287) off=(0,0)
+2025-11-11 04:21:57,237 INFO: render top: zoom=0.564 img=(1154x1130) cw=(823x287) off=(0,0)
+2025-11-11 04:21:57,450 INFO: render top: zoom=0.513 img=(1049x1027) cw=(823x287) off=(0,0)
+2025-11-11 04:21:57,487 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:21:57,524 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:46,215 INFO: slider_change: sigma_var=0.000, thr_pct_var=9
+2025-11-11 04:23:46,344 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=9, thr8=23
+2025-11-11 04:23:46,380 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:46,423 INFO: slider_change: sigma_var=0.000, thr_pct_var=10
+2025-11-11 04:23:46,545 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=10, thr8=26
+2025-11-11 04:23:46,562 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:46,563 INFO: slider_change: sigma_var=0.000, thr_pct_var=11
+2025-11-11 04:23:46,694 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=11, thr8=28
+2025-11-11 04:23:46,710 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:46,717 INFO: slider_change: sigma_var=0.000, thr_pct_var=12
+2025-11-11 04:23:46,844 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=12, thr8=31
+2025-11-11 04:23:46,861 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:46,861 INFO: slider_change: sigma_var=0.000, thr_pct_var=13
+2025-11-11 04:23:46,995 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=13, thr8=33
+2025-11-11 04:23:47,011 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:47,011 INFO: slider_change: sigma_var=0.000, thr_pct_var=14
+2025-11-11 04:23:47,135 INFO: slider_change: sigma_var=0.000, thr_pct_var=15
+2025-11-11 04:23:47,259 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=15, thr8=38
+2025-11-11 04:23:47,276 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:47,277 INFO: slider_change: sigma_var=0.000, thr_pct_var=16
+2025-11-11 04:23:47,410 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=16, thr8=41
+2025-11-11 04:23:47,427 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:47,428 INFO: slider_change: sigma_var=0.000, thr_pct_var=17
+2025-11-11 04:23:47,560 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=17, thr8=43
+2025-11-11 04:23:47,577 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:47,578 INFO: slider_change: sigma_var=0.000, thr_pct_var=18
+2025-11-11 04:23:47,710 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=18, thr8=46
+2025-11-11 04:23:47,727 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:47,727 INFO: slider_change: sigma_var=0.000, thr_pct_var=19
+2025-11-11 04:23:47,859 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=19, thr8=48
+2025-11-11 04:23:47,875 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:47,876 INFO: slider_change: sigma_var=0.000, thr_pct_var=20
+2025-11-11 04:23:48,002 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=20, thr8=51
+2025-11-11 04:23:48,018 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:48,020 INFO: slider_change: sigma_var=0.000, thr_pct_var=21
+2025-11-11 04:23:48,144 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=21, thr8=54
+2025-11-11 04:23:48,160 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:48,164 INFO: slider_change: sigma_var=0.000, thr_pct_var=22
+2025-11-11 04:23:48,293 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=22, thr8=56
+2025-11-11 04:23:48,309 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:48,311 INFO: slider_change: sigma_var=0.000, thr_pct_var=23
+2025-11-11 04:23:48,443 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=23, thr8=59
+2025-11-11 04:23:48,460 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:48,461 INFO: slider_change: sigma_var=0.000, thr_pct_var=24
+2025-11-11 04:23:48,592 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=24, thr8=61
+2025-11-11 04:23:48,608 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:48,611 INFO: slider_change: sigma_var=0.000, thr_pct_var=25
+2025-11-11 04:23:48,742 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=25, thr8=64
+2025-11-11 04:23:48,758 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:48,764 INFO: slider_change: sigma_var=0.000, thr_pct_var=26
+2025-11-11 04:23:48,892 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=26, thr8=66
+2025-11-11 04:23:48,909 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:48,920 INFO: slider_change: sigma_var=0.000, thr_pct_var=27
+2025-11-11 04:23:49,043 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=27, thr8=69
+2025-11-11 04:23:49,059 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:49,076 INFO: slider_change: sigma_var=0.000, thr_pct_var=28
+2025-11-11 04:23:49,208 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=28, thr8=71
+2025-11-11 04:23:49,224 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:49,225 INFO: slider_change: sigma_var=0.000, thr_pct_var=29
+2025-11-11 04:23:49,359 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=29, thr8=74
+2025-11-11 04:23:49,376 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:49,381 INFO: slider_change: sigma_var=0.000, thr_pct_var=30
+2025-11-11 04:23:49,508 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=30, thr8=76
+2025-11-11 04:23:49,524 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:49,531 INFO: slider_change: sigma_var=0.000, thr_pct_var=31
+2025-11-11 04:23:49,660 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=31, thr8=79
+2025-11-11 04:23:49,675 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:49,696 INFO: slider_change: sigma_var=0.000, thr_pct_var=32
+2025-11-11 04:23:49,825 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=32, thr8=82
+2025-11-11 04:23:49,840 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:50,292 INFO: slider_change: sigma_var=0.000, thr_pct_var=33
+2025-11-11 04:23:50,425 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=33, thr8=84
+2025-11-11 04:23:50,442 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:50,939 INFO: slider_change: sigma_var=0.000, thr_pct_var=34
+2025-11-11 04:23:51,072 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=34, thr8=87
+2025-11-11 04:23:51,092 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:51,430 INFO: slider_change: sigma_var=0.000, thr_pct_var=35
+2025-11-11 04:23:51,554 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=35, thr8=89
+2025-11-11 04:23:51,575 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:51,919 INFO: slider_change: sigma_var=0.000, thr_pct_var=36
+2025-11-11 04:23:52,040 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=36, thr8=92
+2025-11-11 04:23:52,057 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:52,524 INFO: slider_change: sigma_var=0.000, thr_pct_var=37
+2025-11-11 04:23:52,656 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=37, thr8=94
+2025-11-11 04:23:52,672 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:52,994 INFO: slider_change: sigma_var=0.000, thr_pct_var=38
+2025-11-11 04:23:53,123 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=38, thr8=97
+2025-11-11 04:23:53,139 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:53,376 INFO: slider_change: sigma_var=0.000, thr_pct_var=39
+2025-11-11 04:23:53,505 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=39, thr8=99
+2025-11-11 04:23:53,522 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:53,607 INFO: slider_change: sigma_var=0.000, thr_pct_var=40
+2025-11-11 04:23:53,731 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=40, thr8=102
+2025-11-11 04:23:53,747 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:54,055 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:23:54,671 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:55,384 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:23:55,648 INFO: render top: zoom=0.513 img=(1049x1027) cw=(823x287) off=(0,0)
+2025-11-11 04:23:55,812 INFO: render top: zoom=0.564 img=(1154x1130) cw=(823x287) off=(0,0)
+2025-11-11 04:23:56,053 INFO: render top: zoom=0.513 img=(1049x1027) cw=(823x287) off=(0,0)
+2025-11-11 04:23:56,091 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:23:56,109 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:56,171 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:23:56,226 INFO: render top: zoom=0.350 img=(717x702) cw=(823x287) off=(53,0)
+2025-11-11 04:23:56,297 INFO: render top: zoom=0.319 img=(651x638) cw=(823x287) off=(86,0)
+2025-11-11 04:23:56,534 INFO: render top: zoom=0.350 img=(717x702) cw=(823x287) off=(53,0)
+2025-11-11 04:23:57,467 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:23:57,530 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:57,605 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:23:57,715 INFO: render top: zoom=0.513 img=(1049x1027) cw=(823x287) off=(0,0)
+2025-11-11 04:23:57,916 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:23:57,953 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:23:57,968 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:23:58,002 INFO: render top: zoom=0.350 img=(717x702) cw=(823x287) off=(53,0)
+2025-11-11 04:23:58,031 INFO: render top: zoom=0.319 img=(651x638) cw=(823x287) off=(86,0)
+2025-11-11 04:23:58,060 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:23:58,349 INFO: render top: zoom=0.263 img=(538x527) cw=(823x287) off=(142,0)
+2025-11-11 04:23:58,376 INFO: render top: zoom=0.239 img=(489x479) cw=(823x287) off=(167,0)
+2025-11-11 04:23:58,401 INFO: render top: zoom=0.218 img=(445x435) cw=(823x287) off=(189,0)
+2025-11-11 04:23:58,425 INFO: render top: zoom=0.198 img=(404x396) cw=(823x287) off=(209,0)
+2025-11-11 04:23:58,449 INFO: render top: zoom=0.180 img=(367x360) cw=(823x287) off=(228,0)
+2025-11-11 04:23:58,472 INFO: render top: zoom=0.164 img=(334x327) cw=(823x287) off=(244,0)
+2025-11-11 04:23:58,591 INFO: render top: zoom=0.180 img=(367x360) cw=(823x287) off=(228,0)
+2025-11-11 04:23:58,616 INFO: render top: zoom=0.198 img=(404x396) cw=(823x287) off=(209,0)
+2025-11-11 04:23:58,641 INFO: render top: zoom=0.218 img=(445x435) cw=(823x287) off=(189,0)
+2025-11-11 04:23:58,655 INFO: render top: zoom=0.239 img=(489x479) cw=(823x287) off=(167,0)
+2025-11-11 04:23:58,683 INFO: render top: zoom=0.263 img=(538x527) cw=(823x287) off=(142,0)
+2025-11-11 04:23:58,712 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:23:59,229 INFO: slider_change: sigma_var=0.000, thr_pct_var=41
+2025-11-11 04:23:59,362 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=41, thr8=105
+2025-11-11 04:23:59,389 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:23:59,594 INFO: slider_change: sigma_var=0.000, thr_pct_var=42
+2025-11-11 04:23:59,728 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=42, thr8=107
+2025-11-11 04:23:59,756 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:23:59,913 INFO: slider_change: sigma_var=0.000, thr_pct_var=43
+2025-11-11 04:24:00,034 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=43, thr8=110
+2025-11-11 04:24:00,047 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:24:00,070 INFO: slider_change: sigma_var=0.000, thr_pct_var=44
+2025-11-11 04:24:00,194 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=44, thr8=112
+2025-11-11 04:24:00,208 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:24:00,208 INFO: slider_change: sigma_var=0.000, thr_pct_var=45
+2025-11-11 04:24:00,330 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=45, thr8=115
+2025-11-11 04:24:00,344 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:24:00,357 INFO: slider_change: sigma_var=0.000, thr_pct_var=46
+2025-11-11 04:24:00,479 INFO: slider_change: sigma_var=0.000, thr_pct_var=47
+2025-11-11 04:24:00,615 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=47, thr8=120
+2025-11-11 04:24:00,629 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:24:00,629 INFO: slider_change: sigma_var=0.000, thr_pct_var=48
+2025-11-11 04:24:00,751 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=48, thr8=122
+2025-11-11 04:24:00,764 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:24:01,026 INFO: slider_change: sigma_var=0.000, thr_pct_var=47
+2025-11-11 04:24:01,149 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=47, thr8=120
+2025-11-11 04:24:01,161 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:24:01,185 INFO: slider_change: sigma_var=0.000, thr_pct_var=46
+2025-11-11 04:24:01,315 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=46, thr8=117
+2025-11-11 04:24:01,329 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:24:01,348 INFO: slider_change: sigma_var=0.000, thr_pct_var=45
+2025-11-11 04:24:01,482 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=45, thr8=115
+2025-11-11 04:24:01,495 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:24:01,495 INFO: slider_change: sigma_var=0.000, thr_pct_var=44
+2025-11-11 04:24:01,617 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=44, thr8=112
+2025-11-11 04:24:01,629 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:24:02,103 INFO: slider_change: sigma_var=0.000, thr_pct_var=40
+2025-11-11 04:24:02,122 INFO: slider_change: sigma_var=0.000, thr_pct_var=39
+2025-11-11 04:24:02,127 INFO: slider_change: sigma_var=0.000, thr_pct_var=39
+2025-11-11 04:24:02,136 INFO: slider_change: sigma_var=0.000, thr_pct_var=38
+2025-11-11 04:24:02,142 INFO: slider_change: sigma_var=0.000, thr_pct_var=37
+2025-11-11 04:24:02,151 INFO: slider_change: sigma_var=0.000, thr_pct_var=37
+2025-11-11 04:24:02,153 INFO: slider_change: sigma_var=0.000, thr_pct_var=36
+2025-11-11 04:24:02,160 INFO: slider_change: sigma_var=0.000, thr_pct_var=35
+2025-11-11 04:24:02,165 INFO: slider_change: sigma_var=0.000, thr_pct_var=35
+2025-11-11 04:24:02,170 INFO: slider_change: sigma_var=0.000, thr_pct_var=34
+2025-11-11 04:24:02,173 INFO: slider_change: sigma_var=0.000, thr_pct_var=33
+2025-11-11 04:24:02,179 INFO: slider_change: sigma_var=0.000, thr_pct_var=33
+2025-11-11 04:24:02,184 INFO: slider_change: sigma_var=0.000, thr_pct_var=32
+2025-11-11 04:24:02,190 INFO: slider_change: sigma_var=0.000, thr_pct_var=32
+2025-11-11 04:24:02,196 INFO: slider_change: sigma_var=0.000, thr_pct_var=31
+2025-11-11 04:24:02,200 INFO: slider_change: sigma_var=0.000, thr_pct_var=30
+2025-11-11 04:24:02,206 INFO: slider_change: sigma_var=0.000, thr_pct_var=30
+2025-11-11 04:24:02,213 INFO: slider_change: sigma_var=0.000, thr_pct_var=29
+2025-11-11 04:24:02,221 INFO: slider_change: sigma_var=0.000, thr_pct_var=28
+2025-11-11 04:24:02,225 INFO: slider_change: sigma_var=0.000, thr_pct_var=28
+2025-11-11 04:24:02,230 INFO: slider_change: sigma_var=0.000, thr_pct_var=28
+2025-11-11 04:24:02,232 INFO: slider_change: sigma_var=0.000, thr_pct_var=27
+2025-11-11 04:24:02,243 INFO: slider_change: sigma_var=0.000, thr_pct_var=26
+2025-11-11 04:24:02,259 INFO: slider_change: sigma_var=0.000, thr_pct_var=26
+2025-11-11 04:24:02,270 INFO: slider_change: sigma_var=0.000, thr_pct_var=25
+2025-11-11 04:24:02,277 INFO: slider_change: sigma_var=0.000, thr_pct_var=25
+2025-11-11 04:24:02,289 INFO: slider_change: sigma_var=0.000, thr_pct_var=25
+2025-11-11 04:24:02,302 INFO: slider_change: sigma_var=0.000, thr_pct_var=24
+2025-11-11 04:24:02,312 INFO: slider_change: sigma_var=0.000, thr_pct_var=23
+2025-11-11 04:24:02,317 INFO: slider_change: sigma_var=0.000, thr_pct_var=23
+2025-11-11 04:24:02,329 INFO: slider_change: sigma_var=0.000, thr_pct_var=22
+2025-11-11 04:24:02,339 INFO: slider_change: sigma_var=0.000, thr_pct_var=21
+2025-11-11 04:24:02,350 INFO: slider_change: sigma_var=0.000, thr_pct_var=21
+2025-11-11 04:24:02,357 INFO: slider_change: sigma_var=0.000, thr_pct_var=20
+2025-11-11 04:24:02,372 INFO: slider_change: sigma_var=0.000, thr_pct_var=19
+2025-11-11 04:24:02,387 INFO: slider_change: sigma_var=0.000, thr_pct_var=19
+2025-11-11 04:24:02,405 INFO: slider_change: sigma_var=0.000, thr_pct_var=18
+2025-11-11 04:24:02,427 INFO: slider_change: sigma_var=0.000, thr_pct_var=17
+2025-11-11 04:24:02,548 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=17, thr8=43
+2025-11-11 04:24:02,561 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:24:02,927 INFO: slider_change: sigma_var=0.000, thr_pct_var=14
+2025-11-11 04:24:02,942 INFO: slider_change: sigma_var=0.000, thr_pct_var=14
+2025-11-11 04:24:02,952 INFO: slider_change: sigma_var=0.000, thr_pct_var=13
+2025-11-11 04:24:02,957 INFO: slider_change: sigma_var=0.000, thr_pct_var=12
+2025-11-11 04:24:02,967 INFO: slider_change: sigma_var=0.000, thr_pct_var=12
+2025-11-11 04:24:02,976 INFO: slider_change: sigma_var=0.000, thr_pct_var=11
+2025-11-11 04:24:02,984 INFO: slider_change: sigma_var=0.000, thr_pct_var=10
+2025-11-11 04:24:02,992 INFO: slider_change: sigma_var=0.000, thr_pct_var=10
+2025-11-11 04:24:02,997 INFO: slider_change: sigma_var=0.000, thr_pct_var=9
+2025-11-11 04:24:03,007 INFO: slider_change: sigma_var=0.000, thr_pct_var=8
+2025-11-11 04:24:03,020 INFO: slider_change: sigma_var=0.000, thr_pct_var=8
+2025-11-11 04:24:03,047 INFO: slider_change: sigma_var=0.000, thr_pct_var=7
+2025-11-11 04:24:03,068 INFO: slider_change: sigma_var=0.000, thr_pct_var=7
+2025-11-11 04:24:03,092 INFO: slider_change: sigma_var=0.000, thr_pct_var=6
+2025-11-11 04:24:03,108 INFO: slider_change: sigma_var=0.000, thr_pct_var=5
+2025-11-11 04:24:03,121 INFO: slider_change: sigma_var=0.000, thr_pct_var=5
+2025-11-11 04:24:03,122 INFO: slider_change: sigma_var=0.000, thr_pct_var=5
+2025-11-11 04:24:03,129 INFO: slider_change: sigma_var=0.000, thr_pct_var=4
+2025-11-11 04:24:03,263 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=4, thr8=10
+2025-11-11 04:24:03,276 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:24:03,913 INFO: render top: zoom=0.263 img=(538x527) cw=(823x287) off=(142,0)
+2025-11-11 04:24:03,938 INFO: render top: zoom=0.239 img=(489x479) cw=(823x287) off=(167,0)
+2025-11-11 04:24:03,976 INFO: render top: zoom=0.218 img=(445x435) cw=(823x287) off=(189,0)
+2025-11-11 04:24:04,032 INFO: render top: zoom=0.198 img=(404x396) cw=(823x287) off=(209,0)
+2025-11-11 04:24:04,097 INFO: render top: zoom=0.180 img=(367x360) cw=(823x287) off=(228,0)
+2025-11-11 04:24:04,354 INFO: render top: zoom=0.198 img=(404x396) cw=(823x287) off=(209,0)
+2025-11-11 04:24:04,395 INFO: render top: zoom=0.218 img=(445x435) cw=(823x287) off=(189,0)
+2025-11-11 04:24:04,473 INFO: render top: zoom=0.239 img=(489x479) cw=(823x287) off=(167,0)
+2025-11-11 04:24:04,503 INFO: render top: zoom=0.263 img=(538x527) cw=(823x287) off=(142,0)
+2025-11-11 04:24:04,550 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:24:04,896 INFO: render top: zoom=0.319 img=(651x638) cw=(823x287) off=(86,0)
+2025-11-11 04:24:05,073 INFO: render top: zoom=0.350 img=(717x702) cw=(823x287) off=(53,0)
+2025-11-11 04:24:05,115 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:24:05,270 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:24:05,670 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:24:05,686 INFO: render top: zoom=0.350 img=(717x702) cw=(823x287) off=(53,0)
+2025-11-11 04:24:05,733 INFO: render top: zoom=0.319 img=(651x638) cw=(823x287) off=(86,0)
+2025-11-11 04:24:05,786 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:24:05,873 INFO: render top: zoom=0.263 img=(538x527) cw=(823x287) off=(142,0)
+2025-11-11 04:25:06,306 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=50, thr8=128
+2025-11-11 04:25:06,363 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:17,301 INFO: slider_change: sigma_var=0.000, thr_pct_var=49
+2025-11-11 04:27:17,303 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=49, thr8=125
+2025-11-11 04:27:17,358 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:17,608 INFO: slider_change: sigma_var=0.000, thr_pct_var=48
+2025-11-11 04:27:17,609 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=48, thr8=122
+2025-11-11 04:27:17,664 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:17,718 INFO: slider_change: sigma_var=0.000, thr_pct_var=47
+2025-11-11 04:27:17,720 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=47, thr8=120
+2025-11-11 04:27:17,774 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:18,316 INFO: slider_change: sigma_var=0.000, thr_pct_var=45
+2025-11-11 04:27:18,318 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=45, thr8=115
+2025-11-11 04:27:18,373 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:18,376 INFO: slider_change: sigma_var=0.000, thr_pct_var=41
+2025-11-11 04:27:18,377 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=41, thr8=105
+2025-11-11 04:27:18,431 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:18,434 INFO: slider_change: sigma_var=0.000, thr_pct_var=33
+2025-11-11 04:27:18,435 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=33, thr8=84
+2025-11-11 04:27:18,491 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:18,494 INFO: slider_change: sigma_var=0.000, thr_pct_var=26
+2025-11-11 04:27:18,495 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=26, thr8=66
+2025-11-11 04:27:18,550 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:18,554 INFO: slider_change: sigma_var=0.000, thr_pct_var=20
+2025-11-11 04:27:18,555 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=20, thr8=51
+2025-11-11 04:27:18,610 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:18,613 INFO: slider_change: sigma_var=0.000, thr_pct_var=17
+2025-11-11 04:27:18,614 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=17, thr8=43
+2025-11-11 04:27:18,669 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:18,674 INFO: slider_change: sigma_var=0.000, thr_pct_var=16
+2025-11-11 04:27:18,676 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=16, thr8=41
+2025-11-11 04:27:18,730 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:18,733 INFO: slider_change: sigma_var=0.000, thr_pct_var=15
+2025-11-11 04:27:18,734 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=15, thr8=38
+2025-11-11 04:27:18,788 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:19,090 INFO: slider_change: sigma_var=0.000, thr_pct_var=14
+2025-11-11 04:27:19,092 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=14, thr8=36
+2025-11-11 04:27:19,146 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:19,148 INFO: slider_change: sigma_var=0.000, thr_pct_var=12
+2025-11-11 04:27:19,149 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=12, thr8=31
+2025-11-11 04:27:19,206 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:19,210 INFO: slider_change: sigma_var=0.000, thr_pct_var=9
+2025-11-11 04:27:19,211 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=9, thr8=23
+2025-11-11 04:27:19,265 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:19,269 INFO: slider_change: sigma_var=0.000, thr_pct_var=5
+2025-11-11 04:27:19,270 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=5, thr8=13
+2025-11-11 04:27:19,325 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:19,329 INFO: slider_change: sigma_var=0.000, thr_pct_var=3
+2025-11-11 04:27:19,330 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=3, thr8=8
+2025-11-11 04:27:19,386 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:19,390 INFO: slider_change: sigma_var=0.000, thr_pct_var=2
+2025-11-11 04:27:19,391 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=2, thr8=5
+2025-11-11 04:27:19,446 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:20,312 INFO: slider_change: sigma_var=0.000, thr_pct_var=3
+2025-11-11 04:27:20,313 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=3, thr8=8
+2025-11-11 04:27:20,368 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:20,474 INFO: slider_change: sigma_var=0.000, thr_pct_var=4
+2025-11-11 04:27:20,475 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=4, thr8=10
+2025-11-11 04:27:20,530 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:20,624 INFO: slider_change: sigma_var=0.000, thr_pct_var=5
+2025-11-11 04:27:20,626 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=5, thr8=13
+2025-11-11 04:27:20,679 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:20,770 INFO: slider_change: sigma_var=0.000, thr_pct_var=6
+2025-11-11 04:27:20,771 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=6, thr8=15
+2025-11-11 04:27:20,826 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:20,913 INFO: slider_change: sigma_var=0.000, thr_pct_var=7
+2025-11-11 04:27:20,914 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=7, thr8=18
+2025-11-11 04:27:20,968 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:21,057 INFO: slider_change: sigma_var=0.000, thr_pct_var=8
+2025-11-11 04:27:21,058 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=8, thr8=20
+2025-11-11 04:27:21,117 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:21,188 INFO: slider_change: sigma_var=0.000, thr_pct_var=9
+2025-11-11 04:27:21,190 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=9, thr8=23
+2025-11-11 04:27:21,250 INFO: render top: zoom=1.000 img=(2046x2003) cw=(823x287) off=(0,0)
+2025-11-11 04:27:21,705 INFO: render top: zoom=0.909 img=(1860x1820) cw=(823x287) off=(0,0)
+2025-11-11 04:27:21,774 INFO: render top: zoom=0.826 img=(1690x1655) cw=(823x287) off=(0,0)
+2025-11-11 04:27:21,836 INFO: render top: zoom=0.751 img=(1537x1504) cw=(823x287) off=(0,0)
+2025-11-11 04:27:22,045 INFO: render top: zoom=0.683 img=(1397x1368) cw=(823x287) off=(0,0)
+2025-11-11 04:27:22,096 INFO: render top: zoom=0.621 img=(1270x1243) cw=(823x287) off=(0,0)
+2025-11-11 04:27:22,144 INFO: render top: zoom=0.564 img=(1154x1130) cw=(823x287) off=(0,0)
+2025-11-11 04:27:22,379 INFO: render top: zoom=0.513 img=(1049x1027) cw=(823x287) off=(0,0)
+2025-11-11 04:27:22,418 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:22,455 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:22,489 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:27:22,521 INFO: render top: zoom=0.350 img=(717x702) cw=(823x287) off=(53,0)
+2025-11-11 04:27:22,747 INFO: render top: zoom=0.319 img=(651x638) cw=(823x287) off=(86,0)
+2025-11-11 04:27:22,778 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:27:22,806 INFO: render top: zoom=0.263 img=(538x527) cw=(823x287) off=(142,0)
+2025-11-11 04:27:22,832 INFO: render top: zoom=0.239 img=(489x479) cw=(823x287) off=(167,0)
+2025-11-11 04:27:22,856 INFO: render top: zoom=0.218 img=(445x435) cw=(823x287) off=(189,0)
+2025-11-11 04:27:23,093 INFO: render top: zoom=0.239 img=(489x479) cw=(823x287) off=(167,0)
+2025-11-11 04:27:23,121 INFO: render top: zoom=0.263 img=(538x527) cw=(823x287) off=(142,0)
+2025-11-11 04:27:23,150 INFO: render top: zoom=0.290 img=(592x580) cw=(823x287) off=(115,0)
+2025-11-11 04:27:23,167 INFO: render top: zoom=0.319 img=(651x638) cw=(823x287) off=(86,0)
+2025-11-11 04:27:23,201 INFO: render top: zoom=0.350 img=(717x702) cw=(823x287) off=(53,0)
+2025-11-11 04:27:23,236 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:27:23,273 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:24,126 INFO: slider_change: sigma_var=0.000, thr_pct_var=10
+2025-11-11 04:27:24,127 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=10, thr8=26
+2025-11-11 04:27:24,162 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:24,273 INFO: slider_change: sigma_var=0.000, thr_pct_var=11
+2025-11-11 04:27:24,274 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=11, thr8=28
+2025-11-11 04:27:24,291 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:24,412 INFO: slider_change: sigma_var=0.000, thr_pct_var=12
+2025-11-11 04:27:24,413 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=12, thr8=31
+2025-11-11 04:27:24,429 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:24,570 INFO: slider_change: sigma_var=0.000, thr_pct_var=13
+2025-11-11 04:27:24,571 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=13, thr8=33
+2025-11-11 04:27:24,587 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:24,705 INFO: slider_change: sigma_var=0.000, thr_pct_var=14
+2025-11-11 04:27:24,706 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=14, thr8=36
+2025-11-11 04:27:24,722 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:24,852 INFO: slider_change: sigma_var=0.000, thr_pct_var=15
+2025-11-11 04:27:24,853 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=15, thr8=38
+2025-11-11 04:27:24,869 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:25,003 INFO: slider_change: sigma_var=0.000, thr_pct_var=16
+2025-11-11 04:27:25,004 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=16, thr8=41
+2025-11-11 04:27:25,020 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:25,164 INFO: slider_change: sigma_var=0.000, thr_pct_var=17
+2025-11-11 04:27:25,165 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=17, thr8=43
+2025-11-11 04:27:25,180 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:25,320 INFO: slider_change: sigma_var=0.000, thr_pct_var=18
+2025-11-11 04:27:25,321 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=18, thr8=46
+2025-11-11 04:27:25,338 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:25,482 INFO: slider_change: sigma_var=0.000, thr_pct_var=19
+2025-11-11 04:27:25,483 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=19, thr8=48
+2025-11-11 04:27:25,498 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:25,653 INFO: slider_change: sigma_var=0.000, thr_pct_var=20
+2025-11-11 04:27:25,654 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=20, thr8=51
+2025-11-11 04:27:25,670 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:25,784 INFO: slider_change: sigma_var=0.000, thr_pct_var=21
+2025-11-11 04:27:25,785 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=21, thr8=54
+2025-11-11 04:27:25,801 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:26,054 INFO: slider_change: sigma_var=0.000, thr_pct_var=22
+2025-11-11 04:27:26,055 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=22, thr8=56
+2025-11-11 04:27:26,071 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:26,206 INFO: slider_change: sigma_var=0.000, thr_pct_var=23
+2025-11-11 04:27:26,208 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=23, thr8=59
+2025-11-11 04:27:26,223 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:26,361 INFO: slider_change: sigma_var=0.000, thr_pct_var=24
+2025-11-11 04:27:26,363 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=24, thr8=61
+2025-11-11 04:27:26,379 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:26,519 INFO: slider_change: sigma_var=0.000, thr_pct_var=25
+2025-11-11 04:27:26,521 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=25, thr8=64
+2025-11-11 04:27:26,537 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:29,579 INFO: render top: zoom=0.386 img=(788x772) cw=(823x287) off=(17,0)
+2025-11-11 04:27:29,942 INFO: render top: zoom=0.424 img=(867x849) cw=(823x287) off=(0,0)
+2025-11-11 04:27:30,024 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:30,559 INFO: render top: zoom=0.513 img=(1049x1027) cw=(823x287) off=(0,0)
+2025-11-11 04:27:30,751 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:31,349 INFO: slider_change: sigma_var=0.000, thr_pct_var=26
+2025-11-11 04:27:31,350 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=26, thr8=66
+2025-11-11 04:27:31,388 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:31,510 INFO: slider_change: sigma_var=0.000, thr_pct_var=27
+2025-11-11 04:27:31,511 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=27, thr8=69
+2025-11-11 04:27:31,549 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:31,647 INFO: slider_change: sigma_var=0.000, thr_pct_var=28
+2025-11-11 04:27:31,649 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=28, thr8=71
+2025-11-11 04:27:31,665 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:31,799 INFO: slider_change: sigma_var=0.000, thr_pct_var=29
+2025-11-11 04:27:31,800 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=29, thr8=74
+2025-11-11 04:27:31,816 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:31,948 INFO: slider_change: sigma_var=0.000, thr_pct_var=30
+2025-11-11 04:27:31,950 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=30, thr8=76
+2025-11-11 04:27:31,966 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:32,113 INFO: slider_change: sigma_var=0.000, thr_pct_var=31
+2025-11-11 04:27:32,114 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=31, thr8=79
+2025-11-11 04:27:32,130 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:32,258 INFO: slider_change: sigma_var=0.000, thr_pct_var=32
+2025-11-11 04:27:32,259 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=32, thr8=82
+2025-11-11 04:27:32,276 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:32,397 INFO: slider_change: sigma_var=0.000, thr_pct_var=33
+2025-11-11 04:27:32,399 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=33, thr8=84
+2025-11-11 04:27:32,414 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:32,529 INFO: slider_change: sigma_var=0.000, thr_pct_var=34
+2025-11-11 04:27:32,530 INFO: binary recompute: sigma=0.000, kernel=1, thr_pct=34, thr8=87
+2025-11-11 04:27:32,547 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:33,089 INFO: slider_change: sigma_var=1.000, thr_pct_var=34
+2025-11-11 04:27:33,091 INFO: binary recompute: sigma=1.000, kernel=7, thr_pct=34, thr8=87
+2025-11-11 04:27:33,108 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:33,203 INFO: slider_change: sigma_var=2.000, thr_pct_var=34
+2025-11-11 04:27:33,205 INFO: binary recompute: sigma=2.000, kernel=13, thr_pct=34, thr8=87
+2025-11-11 04:27:33,222 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:33,347 INFO: slider_change: sigma_var=3.000, thr_pct_var=34
+2025-11-11 04:27:33,350 INFO: binary recompute: sigma=3.000, kernel=19, thr_pct=34, thr8=87
+2025-11-11 04:27:33,367 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:33,497 INFO: slider_change: sigma_var=4.000, thr_pct_var=34
+2025-11-11 04:27:33,501 INFO: binary recompute: sigma=4.000, kernel=25, thr_pct=34, thr8=87
+2025-11-11 04:27:33,517 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:33,645 INFO: slider_change: sigma_var=5.000, thr_pct_var=34
+2025-11-11 04:27:33,649 INFO: binary recompute: sigma=5.000, kernel=31, thr_pct=34, thr8=87
+2025-11-11 04:27:33,665 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:33,795 INFO: slider_change: sigma_var=6.000, thr_pct_var=34
+2025-11-11 04:27:33,801 INFO: binary recompute: sigma=6.000, kernel=37, thr_pct=34, thr8=87
+2025-11-11 04:27:33,818 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:33,949 INFO: slider_change: sigma_var=7.000, thr_pct_var=34
+2025-11-11 04:27:33,955 INFO: binary recompute: sigma=7.000, kernel=43, thr_pct=34, thr8=87
+2025-11-11 04:27:33,972 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:34,102 INFO: slider_change: sigma_var=8.000, thr_pct_var=34
+2025-11-11 04:27:34,110 INFO: binary recompute: sigma=8.000, kernel=49, thr_pct=34, thr8=87
+2025-11-11 04:27:34,126 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:34,249 INFO: slider_change: sigma_var=9.000, thr_pct_var=34
+2025-11-11 04:27:34,257 INFO: binary recompute: sigma=9.000, kernel=55, thr_pct=34, thr8=87
+2025-11-11 04:27:34,273 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
+2025-11-11 04:27:34,388 INFO: slider_change: sigma_var=10.000, thr_pct_var=34
+2025-11-11 04:27:34,398 INFO: binary recompute: sigma=10.000, kernel=61, thr_pct=34, thr8=87
+2025-11-11 04:27:34,414 INFO: render top: zoom=0.467 img=(954x934) cw=(823x287) off=(0,0)
