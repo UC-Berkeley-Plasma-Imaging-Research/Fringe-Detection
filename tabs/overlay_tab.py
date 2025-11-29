@@ -333,7 +333,7 @@ class OverlayTabFrame(ttk.Frame):
     def _on_mouse_wheel(self,event):
         if self._shot_bgr is None and self._ref_bgr is None: return
         delta=1 if event.delta>0 else -1; zoom_factor=1.1 if delta>0 else 0.9
-        old_zoom=self._zoom; new_zoom=max(0.1,min(16.0,old_zoom*zoom_factor))
+        old_zoom=self._zoom; new_zoom=max(0.1,min(64.0,old_zoom*zoom_factor))
         if abs(new_zoom-old_zoom)<1e-6: return
         x_c,y_c=event.x,event.y; _,_,W,H,_,_=self._compute_world_bbox(); cw=max(1,self.canvas.winfo_width()); ch=max(1,self.canvas.winfo_height())
         if self._offset is None or self._base_scale<=0: self._base_scale=max(1e-6,min(cw/float(W),ch/float(H)))

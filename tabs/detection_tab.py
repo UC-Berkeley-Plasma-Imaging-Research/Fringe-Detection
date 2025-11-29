@@ -34,6 +34,10 @@ class DetectionTabFrame(ttk.Frame):
     # Render scheduling
         self._render_running = False
         self._pending_params = None
+        
+    # Caching for shading pipeline
+        self._last_shading_params = None
+        self._cached_enh_img = None
 
     # Viewer state
         self._illum_img_id = None
@@ -185,18 +189,16 @@ class DetectionTabFrame(ttk.Frame):
 
         def make_viewer(parent, title):
             """Viewer canvas (no scrollbars; zoom/pan via handlers)."""
-            lf = ttk.LabelFrame(parent, text=title)
-            lf.pack(fill='both', expand=True, pady=(0, 6) if title != 'Fringe Overlay' else (0, 0))
-            lf.pack_propagate(False)
-            outer = ttk.Frame(lf)
-            outer.pack(fill='both', expand=True)
-            canvas = tk.Canvas(outer, bg='black', highlightthickness=0)
-            # No ttk.Scrollbar widgets; rely on ZoomPanHandler and scrollregion for navigation
+            container = ttk.Frame(parent)
+            container.pack(fill='both', expand=True)
+            if title:
+                ttk.Label(container, text=title, font=('Segoe UI', 9)).pack(anchor='w', padx=2)
+            canvas = tk.Canvas(container, bg='black', highlightthickness=0)
             canvas.pack(fill='both', expand=True)
             return canvas
 
         self.illum_canvas = make_viewer(viewers_container, 'Illumination')
-        self.fringe_canvas = make_viewer(viewers_container, 'Fringe Overlay')
+        self.fringe_canvas = make_viewer(viewers_container, '')
 
     def _attach_handlers(self):
         self._illum_handler = ZoomPanHandler(
@@ -204,14 +206,14 @@ class DetectionTabFrame(ttk.Frame):
             get_zoom=lambda: self._illum_zoom,
             set_zoom=lambda z: setattr(self, '_illum_zoom', z),
             rescale_callback=lambda: self._update_illum_and_fringe(self._last_illum_bgr, self._last_overlay_bgr),
-            min_zoom=0.1, max_zoom=16.0, zoom_step=1.1,
+            min_zoom=0.1, max_zoom=64.0, zoom_step=1.1,
         )
         self._fringe_handler = ZoomPanHandler(
             widget=self.fringe_canvas,
             get_zoom=lambda: self._fringe_zoom,
             set_zoom=lambda z: (setattr(self, '_fringe_zoom', z), setattr(self, '_zoom_level', z)),
             rescale_callback=lambda: self._update_illum_and_fringe(self._last_illum_bgr, self._last_overlay_bgr),
-            min_zoom=0.1, max_zoom=16.0, zoom_step=1.1,
+            min_zoom=0.1, max_zoom=64.0, zoom_step=1.1,
         )
         # Linux/X11 wheel shim
         self.illum_canvas.bind('<Button-4>', lambda e: self._linux_wheel(self._illum_handler, +1, e))
@@ -418,7 +420,15 @@ class DetectionTabFrame(ttk.Frame):
 
     def _render_worker(self, params):
         try:
-            flat, enh, binary = pipeline_shading_sauvola(self.src_img, sigma=params[0], clip=params[1], tile=params[2], win=params[3], k=params[4], post_open=params[5])
+            # Check if shading parameters (first 6) have changed
+            shading_params = params[:6]
+            if self._cached_enh_img is not None and self._last_shading_params == shading_params:
+                enh = self._cached_enh_img
+            else:
+                flat, enh, binary = pipeline_shading_sauvola(self.src_img, sigma=params[0], clip=params[1], tile=params[2], win=params[3], k=params[4], post_open=params[5])
+                self._cached_enh_img = enh
+                self._last_shading_params = shading_params
+            
             self.enh_img = enh
             method = 'Otsu'
             bw = binarize(enh, method=method, blur=0)
@@ -497,8 +507,8 @@ class DetectionTabFrame(ttk.Frame):
     # Rendering
     def _update_illum_and_fringe(self, illum_bgr, overlay_bgr):
         try:
-            self._last_illum_bgr = None if illum_bgr is None else illum_bgr.copy()
-            self._last_overlay_bgr = None if overlay_bgr is None else overlay_bgr.copy()
+            self._last_illum_bgr = illum_bgr
+            self._last_overlay_bgr = overlay_bgr
             # Original overlay feature removed: display processed illumination and fringe directly.
             illum_disp = illum_bgr
             fringe_disp = overlay_bgr

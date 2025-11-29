@@ -64,11 +64,7 @@ class _Base:
 
 
 class OffsetZoomPan(_Base):
-    """Zoom/pan handler for offset-based redraw model.
-
-    debug: when True, prints event traces to stdout.
-    log_file: optional path; when set, append each debug line.
-    """
+    """Zoom/pan handler for offset-based redraw model."""
     def __init__(
         self,
         widget: tk.Widget,
@@ -80,8 +76,6 @@ class OffsetZoomPan(_Base):
         min_zoom: float = 0.1,
         max_zoom: float = 16.0,
         wheel_factor: float = 1.1,
-    debug: bool = False,
-    log_file: str | None = None,
     ):
         super().__init__(widget)
         self.get_zoom = get_zoom
@@ -92,20 +86,7 @@ class OffsetZoomPan(_Base):
         self.min_zoom = float(min_zoom)
         self.max_zoom = float(max_zoom)
         self.wheel_factor = float(wheel_factor)
-        self.debug = bool(debug)
-        self.log_file = log_file
         self._bind()
-
-    def _log(self, line: str):
-        if not self.debug:
-            return
-        print(line)
-        if self.log_file:
-            try:
-                with open(self.log_file, 'a', encoding='utf-8') as f:
-                    f.write(line + '\n')
-            except Exception:
-                pass
 
     def _bind(self):
         try:
@@ -154,7 +135,6 @@ class OffsetZoomPan(_Base):
             old_zoom = 1e-6
         img_x = (x_c - ox) / old_zoom
         img_y = (y_c - oy) / old_zoom
-        self._log(f"[OffsetZoomPan] Wheel delta={delta} old_zoom={old_zoom:.4f} -> new_zoom={new_zoom:.4f} cursor=({x_c},{y_c}) img_pt=({img_x:.2f},{img_y:.2f})")
         self.set_zoom(new_zoom)
         try:
             self.redraw()
@@ -167,13 +147,11 @@ class OffsetZoomPan(_Base):
             self.redraw()
         except Exception:
             pass
-        self._log(f"[OffsetZoomPan] New offset=({new_ox},{new_oy})")
 
     def _on_pan_start(self, event):
         self._dragging = True
         self._drag_root_start = (int(event.x_root), int(event.y_root))
         self._start_offset = self.get_offset()
-        self._log(f"[OffsetZoomPan] Pan start at root={self._drag_root_start} start_offset={self._start_offset}")
         try:
             self.widget.configure(cursor='fleur')
         except Exception:
@@ -191,7 +169,6 @@ class OffsetZoomPan(_Base):
             self.redraw()
         except Exception:
             pass
-        self._log(f"[OffsetZoomPan] Pan move dx={dx} dy={dy} new_offset=({ox0+dx},{oy0+dy})")
         return 'break'
 
     def _on_pan_end(self, event):
@@ -200,16 +177,11 @@ class OffsetZoomPan(_Base):
             self.widget.configure(cursor='')
         except Exception:
             pass
-        self._log("[OffsetZoomPan] Pan end")
         return 'break'
 
 
 class ScrollZoomPan(_Base):
-    """Zoom/pan handler for scrollregion-based canvases (xview/yview).
-
-    debug: when True, prints event traces to stdout.
-    log_file: optional path; when set, append each debug line.
-    """
+    """Zoom/pan handler for scrollregion-based canvases (xview/yview)."""
     def __init__(
         self,
         widget: tk.Canvas,
@@ -219,8 +191,6 @@ class ScrollZoomPan(_Base):
         min_zoom: float = 0.1,
         max_zoom: float = 10.0,
         wheel_factor: float = 1.1,
-    debug: bool = False,
-    log_file: str | None = None,
     ):
         super().__init__(widget)
         self.get_zoom = get_zoom
@@ -229,20 +199,7 @@ class ScrollZoomPan(_Base):
         self.min_zoom = float(min_zoom)
         self.max_zoom = float(max_zoom)
         self.wheel_factor = float(wheel_factor)
-        self.debug = bool(debug)
-        self.log_file = log_file
         self._bind()
-
-    def _log(self, line: str):
-        if not self.debug:
-            return
-        print(line)
-        if self.log_file:
-            try:
-                with open(self.log_file, 'a', encoding='utf-8') as f:
-                    f.write(line + '\n')
-            except Exception:
-                pass
 
     def _bind(self):
         try:
@@ -293,7 +250,6 @@ class ScrollZoomPan(_Base):
         canvas_y_before = top_px_before + float(mouse_y)
         zoom_ratio = new_zoom / (old_zoom if old_zoom != 0 else 1e-6)
 
-        self._log(f"[ScrollZoomPan] Wheel delta={delta} old_zoom={old_zoom:.4f} -> new_zoom={new_zoom:.4f} mouse=({mouse_x},{mouse_y}) before=({canvas_x_before:.1f},{canvas_y_before:.1f}) ratio={zoom_ratio:.4f}")
         self.set_zoom(new_zoom)
         try:
             self.redraw()
@@ -317,7 +273,6 @@ class ScrollZoomPan(_Base):
                 cur_y = self.widget.yview()[0]
             except Exception:
                 cur_x, cur_y = 0.0, 0.0
-            self._log(f"[ScrollZoomPan] Zoom applied bbox=({width:.1f}x{height:.1f}) scroll_unchanged=({cur_x:.4f},{cur_y:.4f})")
 
     def _on_pan_start(self, event):
         self._dragging = True
@@ -335,7 +290,6 @@ class ScrollZoomPan(_Base):
                 self._scroll_start_px = (0.0, 0.0)
         except Exception:
             self._scroll_start_px = (0.0, 0.0)
-        self._log(f"[ScrollZoomPan] Pan start root={self._drag_root_start} start_scroll_px={self._scroll_start_px}")
         try:
             self.widget.configure(cursor='fleur')
         except Exception:
@@ -360,9 +314,7 @@ class ScrollZoomPan(_Base):
         try:
             self.widget.xview_moveto(new_x_frac)
             self.widget.yview_moveto(new_y_frac)
-            self._log(f"[ScrollZoomPan] Pan move dx={dx} dy={dy} new_frac=({new_x_frac:.4f},{new_y_frac:.4f})")
         except Exception:
-            self._log("[ScrollZoomPan] Error during pan move")
             pass
         return 'break'
 
@@ -372,7 +324,6 @@ class ScrollZoomPan(_Base):
             self.widget.configure(cursor='')
         except Exception:
             pass
-        self._log("[ScrollZoomPan] Pan end")
         return 'break'
 
 

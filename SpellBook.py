@@ -39,9 +39,6 @@ class EvenApp(tk.Tk):
         except Exception as e:
             self._detection_frame = None
             try:
-                import traceback
-                print('Failed to load DetectionTabFrame:', e)
-                traceback.print_exc()
                 self.set_status('Failed to load Detection tab')
             except Exception:
                 pass
