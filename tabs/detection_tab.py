@@ -52,55 +52,25 @@ class DetectionTabFrame(ttk.Frame):
         self._illum_centered = False
         self._fringe_centered = False
 
-        # Logging setup
-        try:
-            logs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
-            os.makedirs(logs_dir, exist_ok=True)
-            self._log_path = os.path.join(logs_dir, 'detection_tab.log')
-        except Exception:
-            self._log_path = None
-
-        def _safe_open_append(path):
-            try:
-                return open(path, 'a', encoding='utf-8')
-            except Exception:
-                return None
-        self._log_file = _safe_open_append(self._log_path) if self._log_path else None
-
-        # Write session header
-        self._log('--- DetectionTab session started ---')
-        try:
-            self.bind('<Destroy>', self._on_destroy)
-        except Exception:
-            pass
-
         self._build_ui()
         self._attach_handlers()
 
     # UI helpers
     def _make_slider_row(self, parent, label_text, var, frm, to, resolution=None, is_int=False, fmt=None, command=None):
-        # Wrap command to ensure logging + render scheduling for ALL parameter changes.
         if command is None:
             command = self.on_param_change
-        def wrapped(val=None, _orig=command, _label=label_text, _var=var):
-            try:
-                v = _var.get()
-            except Exception:
-                v = val
-            self._log(f"slider_change label='{_label}' value={v}")
-            _orig(val)
-        return make_slider_row(parent, label_text, var, frm, to, resolution=resolution, is_int=is_int, fmt=fmt, command=wrapped)
+        return make_slider_row(parent, label_text, var, frm, to, resolution=resolution, is_int=is_int, fmt=fmt, command=command)
 
     def _build_ui(self):
         # Left control panel
         ctrl = ttk.Frame(self)
         ctrl.pack(side='left', fill='y', padx=8, pady=8)
-        ctrl.config(width=200)
+        ctrl.config(width=260)
         ctrl.pack_propagate(False)
 
         left_title = ttk.Frame(ctrl)
         left_title.pack(anchor='w', fill='x')
-        ttk.Label(left_title, text='Binary Masking', font=('Segoe UI', 10, 'bold')).pack(side='left')
+        ttk.Label(left_title, text='Binary Illumination', font=('Segoe UI', 10, 'bold')).pack(side='left')
 
         def make_help_icon(parent, tooltip_text, side='right'):
             try:
@@ -114,8 +84,21 @@ class DetectionTabFrame(ttk.Frame):
             self._attach_tooltip(c, tooltip_text, side=side)
             return c
 
-        make_help_icon(left_title, 'Controls:\nRight-drag: pan\nWheel: zoom\nLoad image then adjust sliders.')
-
+        make_help_icon(left_title, (
+            'Detection Tab Purpose:\n'
+            'This tab has two sections:\n'
+            '- Binary Illumination illuminates the image for better fringe detection\n'
+            '- Fringe Detection detects and traces the fringes from the illuminated image \n'
+            '\n'
+            'Controls:\n'
+            '- Right-click drag to move image\n'
+            '- Mouse wheel to zoom\n'
+            '\n'
+            'Binary Illumination Features:\n'
+            '- Blur σ: Changes sharpness of blur\n'
+            '- CLAHE clip/tile: Adjusts local contrast enhancement\n'
+            '- Edit slider ranges: Customize min/max values for sliders\n'
+			))
         # Row with Browse and Save
         btn_row = ttk.Frame(ctrl)
         btn_row.pack(anchor='w', pady=4)
@@ -158,7 +141,26 @@ class DetectionTabFrame(ttk.Frame):
         self.bg_opacity = tk.DoubleVar(value=1.0)
 
         # Section title
-        ttk.Label(ctrl, text='Fringe Detection', font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(6, 0))
+        fringe_title = ttk.Frame(ctrl)
+        fringe_title.pack(anchor='w', fill='x', pady=(6, 0))
+        ttk.Label(fringe_title, text='Fringe Detection', font=('Segoe UI', 10, 'bold')).pack(side='left')
+        make_help_icon(fringe_title, 
+            'Fringe Tab Purpose:\n'
+            "Detects and traces fringes from the illuminated image.\n"
+            '\n'
+            'Controls:\n'
+            '- Right-click drag to move image\n'
+            '- Mouse wheel to zoom\n'
+            '\n'
+            'Fringe Detection Features:\n'
+            '- Line length: Minimum length of detected fringes\n'
+            '- Line thickness: Maximum thickness of detected fringes\n'
+            '- Max angle°: Maximum angle deviation when tracing fringes\n'
+            '- Angle step°: Angular resolution for tracing fringes\n'
+            '- Dilate (px): Thicken detected fringe lines\n'
+            '- Min area: Remove small noise blobs\n'
+            '- Background opacity: Adjust opacity of fringe overlay background\n'
+            )
 
         s7 = self._make_slider_row(ctrl, 'Line length', self.k_len, 5, 200, is_int=True)
         self._slider_meta['Line length'] = {'scale': s7, 'var': self.k_len, 'is_int': True, 'frm': 5, 'to': 200}
@@ -197,7 +199,7 @@ class DetectionTabFrame(ttk.Frame):
             canvas.pack(fill='both', expand=True)
             return canvas
 
-        self.illum_canvas = make_viewer(viewers_container, 'Illumination')
+        self.illum_canvas = make_viewer(viewers_container, '')
         self.fringe_canvas = make_viewer(viewers_container, '')
 
     def _attach_handlers(self):
@@ -300,6 +302,9 @@ class DetectionTabFrame(ttk.Frame):
         try:
             self.src_img = read_gray(p)
             self.set_status(f'Loaded: {os.path.basename(p)}')
+            # Invalidate cache so new image is processed
+            self._cached_enh_img = None
+            self._last_shading_params = None
             self.start_render_now()
         except Exception as e:
             messagebox.showerror('Load error', str(e))
@@ -415,7 +420,6 @@ class DetectionTabFrame(ttk.Frame):
         else:
             # Already rendering -> queue
             self.set_status('Updating (queued)…')
-            self._log('render_queued')
 
 
     def _render_worker(self, params):
@@ -452,11 +456,6 @@ class DetectionTabFrame(ttk.Frame):
                                            bg_fade=bg_fade,
                                            bg_to='white')
             illum_bgr = cv2.cvtColor(enh, cv2.COLOR_GRAY2BGR) if enh.ndim == 2 else enh
-            # Log stats of intermediate images
-            try:
-                self._log(f"worker_complete enh_shape={tuple(enh.shape)} traced_sum={int(traced.sum())} mask_mean={float(self._binary_mask.mean()):.2f}")
-            except Exception:
-                pass
             self.after(0, lambda: (self._update_illum_and_fringe(illum_bgr, overlay), self.update_idletasks()))
         except Exception:
             self.after(0, lambda: messagebox.showerror('Render error', 'An error occurred during rendering'))
@@ -467,11 +466,9 @@ class DetectionTabFrame(ttk.Frame):
                     if next_params is not None and next_params != params:
                         self._pending_params = None
                         threading.Thread(target=self._render_worker, args=(next_params,), daemon=True).start()
-                        self._log('render_chain_start')
                     else:
                         self._render_running = False
                         self._pending_params = None
-                        self._log('render_idle')
                 except Exception:
                     self._render_running = False
                     self._pending_params = None
@@ -569,42 +566,5 @@ class DetectionTabFrame(ttk.Frame):
 
             self._zoom_level = self._fringe_zoom
             self.set_status('Rendered')
-            # Log final illumination image stats
-            try:
-                if illum_bgr is not None:
-                    h, w = illum_bgr.shape[:2]
-                    checksum = int(np.sum(illum_bgr) % (2**32 - 1))
-                    try:
-                        bop = float(self.bg_opacity.get()) if hasattr(self, 'bg_opacity') else 1.0
-                    except Exception:
-                        bop = 1.0
-                    self._log(f"update_complete illum_size=({w}x{h}) checksum={checksum} bg_opacity={bop:.2f}")
-            except Exception:
-                pass
-        except Exception:
-            pass
-
-    # Logging utility
-    def _log(self, msg):
-        if self._log_file is None:
-            return
-        try:
-            import datetime
-            ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-            self._log_file.write(f"{ts} {msg}\n")
-            self._log_file.flush()
-        except Exception:
-            pass
-
-    def _on_destroy(self, _e=None):
-        try:
-            if self._log_file is not None:
-                self._log('--- session end ---')
-                try:
-                    self._log_file.flush()
-                except Exception:
-                    pass
-                self._log_file.close()
-                self._log_file = None
         except Exception:
             pass
