@@ -19,21 +19,45 @@ def to_photoimage_from_bgr_with_scale(bgr, scale=1.0, interpolation=Image.BILINE
         return ImageTk.PhotoImage(Image.new('RGB', (1, 1)))
 
     # Always create a fresh PIL Image to reflect current pixel data
-    if bgr.ndim == 2:
-        img = Image.fromarray(bgr)
-    else:
-        img = Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
-
-    # Scale only if needed
-    if scale is None or float(scale) == 1.0:
+    # Optimization: Use cv2.resize which is significantly faster than PIL.Image.resize
+    if scale is None:
+        scale = 1.0
+    
+    scale = float(scale)
+    if scale == 1.0:
+        if bgr.ndim == 2:
+            img = Image.fromarray(bgr)
+        else:
+            img = Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
         return ImageTk.PhotoImage(img)
 
-    w, h = img.size
-    new_w = max(1, int(w * float(scale)))
-    new_h = max(1, int(h * float(scale)))
+    new_w = max(1, int(bgr.shape[1] * scale))
+    new_h = max(1, int(bgr.shape[0] * scale))
 
-    img2 = img.resize((new_w, new_h), resample=interpolation)
-    return ImageTk.PhotoImage(img2)
+    # Select interpolation method for speed/quality trade-off
+    # Large upscaling -> Nearest Neighbor (fastest, crisp pixels)
+    # Downscaling -> Area (best quality) or Linear (fast)
+    if scale >= 2.0:
+        cv_interp = cv2.INTER_NEAREST
+    elif scale < 1.0:
+        cv_interp = cv2.INTER_AREA
+    else:
+        # Map PIL constants to OpenCV if possible
+        if interpolation == Image.NEAREST:
+            cv_interp = cv2.INTER_NEAREST
+        elif interpolation == Image.BICUBIC:
+            cv_interp = cv2.INTER_CUBIC
+        else:
+            cv_interp = cv2.INTER_LINEAR
+
+    resized = cv2.resize(bgr, (new_w, new_h), interpolation=cv_interp)
+
+    if resized.ndim == 2:
+        img = Image.fromarray(resized)
+    else:
+        img = Image.fromarray(cv2.cvtColor(resized, cv2.COLOR_BGR2RGB))
+
+    return ImageTk.PhotoImage(img)
 
 
 def make_slider_row(parent, label_text, var, frm, to, resolution=None, is_int=False, fmt=None, command=None):

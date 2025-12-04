@@ -27,6 +27,16 @@ class FringeEditorFrame(tk.Frame):
 		self._gray_undo_stack = []
 		self._photo = None
 
+		# Overlay state
+		self.overlay_mask = None
+		self.overlay_pos = (0, 0)  # Top-left in image coordinates
+		self.overlay_active = False
+		self._moving_overlay = False
+
+		# Magic2 state
+		self.magic2_active = False
+		self.magic2_labels = set()
+
 		# View/zoom state
 		self._base_scale = 1.0
 		self._zoom = 1.0
@@ -108,6 +118,10 @@ class FringeEditorFrame(tk.Frame):
 		add(ttk.Button(self.toolbar_body, text="Open Background", command=self.open_background))
 		add(ttk.Button(self.toolbar_body, text="Save As…", command=self.save_binary))
 		add(ttk.Separator(self.toolbar_body, orient="vertical"))
+		add(ttk.Button(self.toolbar_body, text="Overlay Binary", command=self.open_overlay_binary))
+		self.btn_merge_overlay = ttk.Button(self.toolbar_body, text="Merge Overlay", command=self.merge_overlay, state="disabled")
+		add(self.btn_merge_overlay)
+		add(ttk.Separator(self.toolbar_body, orient="vertical"))
 		add(ttk.Button(self.toolbar_body, text="Open Gray Mask", command=self.open_gray_mask))
 		add(ttk.Button(self.toolbar_body, text="Save Gray Mask", command=self.save_gray_mask))
 		add(ttk.Separator(self.toolbar_body, orient="vertical"))
@@ -145,6 +159,8 @@ class FringeEditorFrame(tk.Frame):
 			link_spin = tk.Entry(self.toolbar_body, width=4, textvariable=self.link_tol_var)
 		add(link_spin)
 		add(ttk.Button(self.toolbar_body, text="½ Angle, 2× Tol", command=self._halve_angle_double_tol))
+		add(ttk.Separator(self.toolbar_body, orient="vertical"))
+		add(ttk.Button(self.toolbar_body, text="Magic2 Tester", command=self.run_magic2_tester))
 		add(ttk.Separator(self.toolbar_body, orient="vertical"))
 		self.show_components_var = tk.BooleanVar(value=False)
 		add(ttk.Checkbutton(self.toolbar_body, text="Color comps", variable=self.show_components_var, command=lambda: self._refresh_display(False)))
@@ -282,6 +298,10 @@ class FringeEditorFrame(tk.Frame):
 		self._bind_to_toplevel("<Control-z>", lambda e: self.undo())
 		self._bind_to_toplevel("<Key-a>", lambda e: self._set_mode("add"))
 		self._bind_to_toplevel("<Key-e>", lambda e: self._set_mode("erase"))
+		self._bind_to_toplevel("<Left>", lambda e: self._nudge_overlay(-1, 0))
+		self._bind_to_toplevel("<Right>", lambda e: self._nudge_overlay(1, 0))
+		self._bind_to_toplevel("<Up>", lambda e: self._nudge_overlay(0, -1))
+		self._bind_to_toplevel("<Down>", lambda e: self._nudge_overlay(0, 1))
 
 		self._painting = False
 		self._cursor_circle_id = None
@@ -465,6 +485,81 @@ class FringeEditorFrame(tk.Frame):
 		self.set_status(f"Loaded gray mask: {os.path.basename(path)}")
 		self._refresh_display(force_recompute_base=(self._zoom==1.0))
 
+	def open_overlay_binary(self):
+		if self.mask is None:
+			messagebox.showinfo("Overlay error", "Please load a base binary image first.")
+			return
+		
+		base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+		edited_dir = os.path.join(base_dir, 'EditedImages')
+		initial_dir = edited_dir if os.path.isdir(edited_dir) else base_dir
+		path = filedialog.askopenfilename(parent=self.winfo_toplevel(), title="Open overlay binary",
+										  filetypes=[("Images", ("*.png","*.jpg","*.jpeg","*.tif","*.tiff"))], initialdir=initial_dir)
+		if not path: return
+		
+		img0 = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+		if img0 is None: messagebox.showerror("Open error","Failed to read the image"); return
+		if img0.ndim == 3: img0 = cv2.cvtColor(img0, cv2.COLOR_BGR2GRAY)
+		img = cv2.normalize(img0, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8) if img0.dtype != np.uint8 else img0
+		
+		# Create binary mask from loaded image (0=black, 255=white)
+		# Assuming input is standard image where dark is ink.
+		# If it's already a mask (0/255), we keep it.
+		# Let's assume standard thresholding: <128 is black (ink), >128 is white (bg)
+		# We want to overlay the BLACK parts (fringes).
+		# So we'll store the overlay where 0 is ink, 255 is bg.
+		self.overlay_mask = np.where(img < 128, 0, 255).astype(np.uint8)
+		
+		# Center the overlay initially
+		h, w = self.mask.shape[:2]
+		oh, ow = self.overlay_mask.shape[:2]
+		self.overlay_pos = ((w - ow) // 2, (h - oh) // 2)
+		
+		self.overlay_active = True
+		self.btn_merge_overlay.config(state="normal")
+		self.set_status(f"Overlay loaded. Drag to position, then click 'Merge Overlay'.")
+		self._refresh_display()
+
+	def merge_overlay(self):
+		if not self.overlay_active or self.overlay_mask is None or self.mask is None:
+			return
+		
+		self._undo_stack.append(self.mask.copy())
+		if len(self._undo_stack) > 20: self._undo_stack = self._undo_stack[-20:]
+		
+		ox, oy = self.overlay_pos
+		oh, ow = self.overlay_mask.shape[:2]
+		h, w = self.mask.shape[:2]
+		
+		# Calculate intersection
+		x0 = max(0, ox); y0 = max(0, oy)
+		x1 = min(w, ox + ow); y1 = min(h, oy + oh)
+		
+		if x1 > x0 and y1 > y0:
+			# Source coordinates in overlay
+			sx0 = x0 - ox; sy0 = y0 - oy
+			sx1 = sx0 + (x1 - x0); sy1 = sy0 + (y1 - y0)
+			
+			# Get the overlay region
+			ov_region = self.overlay_mask[sy0:sy1, sx0:sx1]
+			
+			# Merge logic:
+			# We want to add the black pixels (0) from overlay to the mask.
+			# Mask: 0 is black, 255 is white.
+			# Result should be 0 if EITHER mask is 0 OR overlay is 0.
+			# This is equivalent to logical AND if 0=False, but here 0 is ink.
+			# So it's min(mask, overlay) or bitwise AND.
+			
+			current_region = self.mask[y0:y1, x0:x1]
+			merged_region = cv2.bitwise_and(current_region, ov_region)
+			self.mask[y0:y1, x0:x1] = merged_region
+			
+		self.overlay_active = False
+		self.overlay_mask = None
+		self.btn_merge_overlay.config(state="disabled")
+		self.set_status("Overlay merged.")
+		self._refresh_display()
+
 	def save_binary(self):
 		if self.mask is None: messagebox.showinfo("Nothing to save","Load an image first"); return
 		# Default save location to EditedImages and ensure it exists
@@ -583,6 +678,52 @@ class FringeEditorFrame(tk.Frame):
 		except Exception:
 			messagebox.showerror("Link endpoints","Failed to link endpoints on the current mask")
 
+	def run_magic2_tester(self):
+		if self.mask is None: return
+		
+		# Toggle off if already active
+		if self.magic2_active:
+			self.magic2_active = False
+			self.magic2_labels = set()
+			self._refresh_display()
+			self.set_status("Magic2 Tester deactivated")
+			return
+
+		try:
+			# Ensure labels are computed
+			if self._labels_cache is None or self._labels_dirty:
+				bw_full = (self.mask == 0).astype(np.uint8)
+				num, labels_full = cv2.connectedComponents(bw_full, connectivity=8)
+				# Generate colors (same logic as in _refresh_display)
+				idx = np.arange(num, dtype=np.uint32)
+				x = (idx * np.uint32(2654435761)) & np.uint32(0xFFFFFFFF)
+				r = (x & np.uint32(0xFF)).astype(np.uint8)
+				g = ((x >> np.uint32(8)) & np.uint32(0xFF)).astype(np.uint8)
+				b = ((x >> np.uint32(16)) & np.uint32(0xFF)).astype(np.uint8)
+				colors = np.stack([r, g, b], axis=1)
+				colors = np.maximum(colors, 40)
+				colors[0] = (255, 255, 255)
+				self._labels_cache = (labels_full, colors)
+				self._labels_dirty = False
+			
+			labels_full, _ = self._labels_cache
+			
+			h, w = self.mask.shape[:2]
+			mid_x = int(w // 2)
+			
+			# Find labels along the vertical line at mid_x
+			col_labels = labels_full[:, mid_x]
+			touched = set(np.unique(col_labels)) - {0}
+			
+			self.magic2_active = True
+			self.magic2_labels = touched
+			self._refresh_display()
+			self.set_status(f"Magic2: Highlighted {len(touched)} fringes touching the center line")
+			
+		except Exception as e:
+			print(f"Magic2 error: {e}")
+			self.set_status("Magic2 Tester failed")
+
 	def _on_canvas_configure(self, event=None):
 		self._refresh_display(force_recompute_base=(self._zoom == 1.0))
 
@@ -632,8 +773,9 @@ class FringeEditorFrame(tk.Frame):
 				region_gray = None
 		
 		colorize = bool(getattr(self, 'show_components_var', tk.BooleanVar(value=False)).get())
+		magic_active = getattr(self, 'magic2_active', False)
 		comp_rgb = None
-		if colorize and self.mask is not None:
+		if (colorize or magic_active) and self.mask is not None:
 			try:
 				if self._labels_cache is None or self._labels_dirty:
 					bw_full = (self.mask == 0).astype(np.uint8)
@@ -648,9 +790,31 @@ class FringeEditorFrame(tk.Frame):
 					colors[0] = (255, 255, 255)
 					self._labels_cache = (labels_full, colors)
 					self._labels_dirty = False
+					
+					if magic_active:
+						h, w = self.mask.shape[:2]
+						mid_x = int(w // 2)
+						col_labels = labels_full[:, mid_x]
+						self.magic2_labels = set(np.unique(col_labels)) - {0}
+
 				labels_full, colors = self._labels_cache
 				labels_crop = labels_full[iy0:iy1, ix0:ix1]
-				comp_rgb = colors[labels_crop]
+				
+				if magic_active:
+					if colorize:
+						comp_rgb = colors[labels_crop].copy()
+					else:
+						# White bg, Black fringes
+						h_c, w_c = labels_crop.shape
+						comp_rgb = np.full((h_c, w_c, 3), 255, dtype=np.uint8)
+						comp_rgb[labels_crop > 0] = [0, 0, 0]
+					
+					# Apply highlights
+					if self.magic2_labels:
+						mask_hl = np.isin(labels_crop, list(self.magic2_labels))
+						comp_rgb[mask_hl] = [255, 0, 255]
+				elif colorize:
+					comp_rgb = colors[labels_crop]
 			except Exception:
 				comp_rgb = None
 		if comp_rgb is not None:
@@ -723,6 +887,72 @@ class FringeEditorFrame(tk.Frame):
 			except Exception:
 				pass  # If compositing fails, just show the base image
 		
+		# Draw Overlay if active
+		if self.overlay_active and self.overlay_mask is not None:
+			try:
+				# Overlay position in image coords
+				ox, oy = self.overlay_pos
+				oh, ow = self.overlay_mask.shape[:2]
+				
+				# Visible region in image coords: ix0, iy0, ix1, iy1
+				# Intersection of overlay and visible region
+				inter_x0 = max(ix0, ox)
+				inter_y0 = max(iy0, oy)
+				inter_x1 = min(ix1, ox + ow)
+				inter_y1 = min(iy1, oy + oh)
+				
+				if inter_x1 > inter_x0 and inter_y1 > inter_y0:
+					# Slice from overlay
+					sx0 = inter_x0 - ox
+					sy0 = inter_y0 - oy
+					sx1 = sx0 + (inter_x1 - inter_x0)
+					sy1 = sy0 + (inter_y1 - inter_y0)
+					
+					ov_sub = self.overlay_mask[sy0:sy1, sx0:sx1]
+					
+					# Scale to display size
+					# Display region corresponds to [inter_x0:inter_x1, inter_y0:inter_y1]
+					# Its position on canvas relative to vx0, vy0 is:
+					# dx = (inter_x0 - ix0) * scale
+					# dy = (inter_y0 - iy0) * scale
+					# w = (inter_x1 - inter_x0) * scale
+					# h = (inter_y1 - inter_y0) * scale
+					
+					scale = self._scale if self._scale > 0 else 1.0
+					
+					# Calculate destination rect on the pil_img (which is size dst_w x dst_h)
+					# pil_img top-left corresponds to ix0, iy0
+					
+					dest_x = int((inter_x0 - ix0) * scale)
+					dest_y = int((inter_y0 - iy0) * scale)
+					dest_w = int((inter_x1 - inter_x0) * scale)
+					dest_h = int((inter_y1 - inter_y0) * scale)
+					
+					if dest_w > 0 and dest_h > 0:
+						# Resize overlay slice
+						ov_img = Image.fromarray(ov_sub, mode="L").resize((dest_w, dest_h), Image.NEAREST)
+						
+						# Create a colored version for visibility (e.g. Cyan for black pixels)
+						# Overlay mask: 0 is ink, 255 is bg.
+						# We want to show ink as Cyan, transparent elsewhere.
+						
+						ov_arr = np.array(ov_img)
+						# Create RGBA
+						rgba = np.zeros((dest_h, dest_w, 4), dtype=np.uint8)
+						# Ink pixels (low value) -> Cyan (0, 255, 255) with alpha
+						ink_mask = ov_arr < 128
+						rgba[ink_mask] = [0, 255, 255, 180] # Cyan, semi-transparent
+						
+						ov_rgba = Image.fromarray(rgba, mode="RGBA")
+						
+						if pil_img.mode != "RGBA":
+							pil_img = pil_img.convert("RGBA")
+						
+						pil_img.paste(ov_rgba, (dest_x, dest_y), ov_rgba)
+			except Exception as e:
+				print(f"Overlay render error: {e}")
+				pass
+
 		self._photo = ImageTk.PhotoImage(pil_img)
 		self.canvas.create_image(vx0, vy0, anchor="nw", image=self._photo)
 		self._img_topleft = (x0, y0)
@@ -843,7 +1073,35 @@ class FringeEditorFrame(tk.Frame):
 
 	# Global paint handlers removed (unused)
 
+	def _nudge_overlay(self, dx, dy):
+		if not self.overlay_active or self.overlay_mask is None: return
+		ox, oy = self.overlay_pos
+		self.overlay_pos = (ox + dx, oy + dy)
+		self._refresh_display(False)
+
 	def _on_pan_start(self, event):
+		# Check for overlay drag first
+		# Require Control key (state & 4) to move overlay
+		is_ctrl = (event.state & 0x4) != 0
+		if is_ctrl and self.overlay_active and self.overlay_mask is not None:
+			ox, oy = self.overlay_pos
+			oh, ow = self.overlay_mask.shape[:2]
+			scale = self._scale if self._scale > 0 else 1.0
+			# self._offset is the canvas coordinate of the image top-left (0,0)
+			img_x0, img_y0 = self._offset if self._offset is not None else (0, 0)
+			
+			# Overlay rect on canvas
+			cv_ox = img_x0 + ox * scale
+			cv_oy = img_y0 + oy * scale
+			cv_w = ow * scale
+			cv_h = oh * scale
+			
+			if cv_ox <= event.x <= cv_ox + cv_w and cv_oy <= event.y <= cv_oy + cv_h:
+				self._moving_overlay = True
+				self._pan_start = (event.x, event.y)
+				self._overlay_start_pos = (ox, oy)
+				return
+
 		self._panning = True
 		self._pan_start = (event.x, event.y)
 		self._offset_start = self._offset if self._offset is not None else getattr(self, "_img_topleft", (0, 0))
@@ -851,6 +1109,22 @@ class FringeEditorFrame(tk.Frame):
 		except Exception: pass
 
 	def _on_pan_move(self, event):
+		if self._moving_overlay:
+			sx, sy = self._pan_start
+			dx = event.x - sx
+			dy = event.y - sy
+			
+			scale = self._scale if self._scale > 0 else 1.0
+			
+			# Convert delta to image coords
+			idx = dx / scale
+			idy = dy / scale
+			
+			ox_start, oy_start = self._overlay_start_pos
+			self.overlay_pos = (int(ox_start + idx), int(oy_start + idy))
+			self._refresh_display(False)
+			return
+
 		if not self._panning: return
 		sx, sy = self._pan_start; dx = event.x - sx; dy = event.y - sy
 		ox0, oy0 = self._offset_start; self._offset = (ox0 + dx, oy0 + dy)
@@ -858,6 +1132,10 @@ class FringeEditorFrame(tk.Frame):
 		self._last_mouse_pos = (event.x, event.y); self._update_cursor_circle(event.x, event.y)
 
 	def _on_pan_end(self, event):
+		if self._moving_overlay:
+			self._moving_overlay = False
+			return
+
 		self._panning = False
 		try: self.config(cursor='')
 		except Exception: pass

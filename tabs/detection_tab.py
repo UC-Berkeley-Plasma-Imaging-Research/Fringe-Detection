@@ -16,6 +16,9 @@ from fringe_detection import (
     overlay_mask_on_gray,
     make_slider_row,
     to_photoimage_from_bgr_with_scale,
+    remove_humps,
+    remove_branches,
+    fill_holes,
 )
 from fringe_detection.zoom_handler import ZoomPanHandler
 
@@ -62,11 +65,56 @@ class DetectionTabFrame(ttk.Frame):
         return make_slider_row(parent, label_text, var, frm, to, resolution=resolution, is_int=is_int, fmt=fmt, command=command)
 
     def _build_ui(self):
-        # Left control panel
-        ctrl = ttk.Frame(self)
-        ctrl.pack(side='left', fill='y', padx=8, pady=8)
-        ctrl.config(width=260)
-        ctrl.pack_propagate(False)
+        # Left control panel container
+        ctrl_container = ttk.Frame(self)
+        ctrl_container.pack(side='left', fill='y', padx=8, pady=8)
+        ctrl_container.config(width=290)
+        ctrl_container.pack_propagate(False)
+
+        # Canvas and Scrollbar for scrolling
+        try:
+            bg_color = self.cget('background')
+            if not bg_color: bg_color = '#f0f0f0'
+        except Exception:
+            bg_color = '#f0f0f0'
+            
+        canvas = tk.Canvas(ctrl_container, highlightthickness=0, bg=bg_color)
+        scrollbar = ttk.Scrollbar(ctrl_container, orient="vertical", command=canvas.yview)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # The actual control frame
+        ctrl = ttk.Frame(canvas)
+        
+        # Create window in canvas
+        canvas_window = canvas.create_window((0, 0), window=ctrl, anchor="nw")
+
+        def configure_scroll_region(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        
+        ctrl.bind("<Configure>", configure_scroll_region)
+
+        def configure_window_width(event):
+            canvas.itemconfig(canvas_window, width=event.width)
+
+        canvas.bind("<Configure>", configure_window_width)
+
+        # Mousewheel scrolling
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+            return "break"
+
+        def _recursive_bind(widget):
+            widget.bind('<MouseWheel>', _on_mousewheel)
+            for child in widget.winfo_children():
+                _recursive_bind(child)
+
+        # Bind canvas and schedule recursive bind for ctrl (to catch all children added later)
+        canvas.bind('<MouseWheel>', _on_mousewheel)
+        self.after_idle(lambda: _recursive_bind(ctrl))
 
         left_title = ttk.Frame(ctrl)
         left_title.pack(anchor='w', fill='x')
@@ -113,7 +161,7 @@ class DetectionTabFrame(ttk.Frame):
         ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
 
         self.sigma_var = tk.DoubleVar(value=5.0)
-        self.clip_var = tk.DoubleVar(value=50.0)
+        self.clip_var = tk.DoubleVar(value=100.0)
         self.tile_var = tk.IntVar(value=8)
         self.win_var = tk.IntVar(value=31)
         self.k_var = tk.DoubleVar(value=0.20)
@@ -122,14 +170,9 @@ class DetectionTabFrame(ttk.Frame):
 
         s1 = self._make_slider_row(ctrl, 'Blur σ', self.sigma_var, 0.1, 10.0, is_int=False, fmt="{:.1f}")
         self._slider_meta['Blur σ'] = {'scale': s1, 'var': self.sigma_var, 'is_int': False, 'frm': 0.1, 'to': 10.0}
-        s2 = self._make_slider_row(ctrl, 'CLAHE clip', self.clip_var, 10.0, 100.0, is_int=False, fmt="{:.2f}")
-        self._slider_meta['CLAHE clip'] = {'scale': s2, 'var': self.clip_var, 'is_int': False, 'frm': 10.0, 'to': 100.0}
-        s3 = self._make_slider_row(ctrl, 'CLAHE tile', self.tile_var, 2, 128, is_int=True)
-        self._slider_meta['CLAHE tile'] = {'scale': s3, 'var': self.tile_var, 'is_int': True, 'frm': 2, 'to': 128}
 
         # (Sauvola win/k/post open removed; values still used internally)
-        ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
-
+        
         # Fringe detection parameters
         self.k_len = tk.IntVar(value=41)
         self.k_thk = tk.IntVar(value=1)
@@ -137,30 +180,17 @@ class DetectionTabFrame(ttk.Frame):
         self.k_step = tk.DoubleVar(value=2.0)
         self.k_dilate = tk.IntVar(value=0)
         self.k_area = tk.IntVar(value=0)
+        # Hump removal
+        self.hump_var = tk.BooleanVar(value=False)
+        self.hump_width_var = tk.IntVar(value=2)
+        # Branch pruning
+        self.prune_var = tk.IntVar(value=0)
+        # Fill loops
+        self.fill_loops_var = tk.IntVar(value=0)
+        # Min fragment size (dust removal)
+        self.min_fragment_var = tk.IntVar(value=0)
         # Background opacity for Fringe view: 0 => white background, 1 => full grayscale background
         self.bg_opacity = tk.DoubleVar(value=1.0)
-
-        # Section title
-        fringe_title = ttk.Frame(ctrl)
-        fringe_title.pack(anchor='w', fill='x', pady=(6, 0))
-        ttk.Label(fringe_title, text='Fringe Detection', font=('Segoe UI', 10, 'bold')).pack(side='left')
-        make_help_icon(fringe_title, 
-            'Fringe Tab Purpose:\n'
-            "Detects and traces fringes from the illuminated image.\n"
-            '\n'
-            'Controls:\n'
-            '- Right-click drag to move image\n'
-            '- Mouse wheel to zoom\n'
-            '\n'
-            'Fringe Detection Features:\n'
-            '- Line length: Minimum length of detected fringes\n'
-            '- Line thickness: Maximum thickness of detected fringes\n'
-            '- Max angle°: Maximum angle deviation when tracing fringes\n'
-            '- Angle step°: Angular resolution for tracing fringes\n'
-            '- Dilate (px): Thicken detected fringe lines\n'
-            '- Min area: Remove small noise blobs\n'
-            '- Background opacity: Adjust opacity of fringe overlay background\n'
-            )
 
         s7 = self._make_slider_row(ctrl, 'Line length', self.k_len, 5, 200, is_int=True)
         self._slider_meta['Line length'] = {'scale': s7, 'var': self.k_len, 'is_int': True, 'frm': 5, 'to': 200}
@@ -174,12 +204,31 @@ class DetectionTabFrame(ttk.Frame):
         self._slider_meta['Dilate (px)'] = {'scale': s11, 'var': self.k_dilate, 'is_int': True, 'frm': 0, 'to': 25}
         s12 = self._make_slider_row(ctrl, 'Min area', self.k_area, 0, 10000, is_int=True)
         self._slider_meta['Min area'] = {'scale': s12, 'var': self.k_area, 'is_int': True, 'frm': 0, 'to': 10000}
+        
+        s_prune = self._make_slider_row(ctrl, 'Prune spurs', self.prune_var, 0, 30, is_int=True)
+        self._slider_meta['Prune spurs'] = {'scale': s_prune, 'var': self.prune_var, 'is_int': True, 'frm': 0, 'to': 30}
+
+        s_loops = self._make_slider_row(ctrl, 'Fill loops (px)', self.fill_loops_var, 0, 100, is_int=True)
+        self._slider_meta['Fill loops (px)'] = {'scale': s_loops, 'var': self.fill_loops_var, 'is_int': True, 'frm': 0, 'to': 100}
+
+        s_frag = self._make_slider_row(ctrl, 'Min fragment', self.min_fragment_var, 0, 100, is_int=True)
+        self._slider_meta['Min fragment'] = {'scale': s_frag, 'var': self.min_fragment_var, 'is_int': True, 'frm': 0, 'to': 100}
+
+        # Hump removal checkbox
+        hump_chk = ttk.Checkbutton(ctrl, text='Remove Humps', variable=self.hump_var, command=self.on_param_change)
+        hump_chk.pack(anchor='w', padx=6, pady=2)
+
+        s_hump = self._make_slider_row(ctrl, 'Hump Width', self.hump_width_var, 1, 30, is_int=True)
+        self._slider_meta['Hump Width'] = {'scale': s_hump, 'var': self.hump_width_var, 'is_int': True, 'frm': 1, 'to': 30}
 
         # Background opacity slider for fringe overlay background
         s_bg = self._make_slider_row(ctrl, 'Background opacity', self.bg_opacity, 0.0, 1.0, is_int=False, fmt="{:.2f}")
         self._slider_meta['Background opacity'] = {'scale': s_bg, 'var': self.bg_opacity, 'is_int': False, 'frm': 0.0, 'to': 1.0}
 
         ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
+        
+        # Extra padding for scrolling
+        ttk.Frame(ctrl, height=100).pack(fill='x')
 
         # Middle viewers
         img_frame = ttk.Frame(self)
@@ -199,17 +248,9 @@ class DetectionTabFrame(ttk.Frame):
             canvas.pack(fill='both', expand=True)
             return canvas
 
-        self.illum_canvas = make_viewer(viewers_container, '')
         self.fringe_canvas = make_viewer(viewers_container, '')
 
     def _attach_handlers(self):
-        self._illum_handler = ZoomPanHandler(
-            widget=self.illum_canvas,
-            get_zoom=lambda: self._illum_zoom,
-            set_zoom=lambda z: setattr(self, '_illum_zoom', z),
-            rescale_callback=lambda: self._update_illum_and_fringe(self._last_illum_bgr, self._last_overlay_bgr),
-            min_zoom=0.1, max_zoom=64.0, zoom_step=1.1,
-        )
         self._fringe_handler = ZoomPanHandler(
             widget=self.fringe_canvas,
             get_zoom=lambda: self._fringe_zoom,
@@ -218,8 +259,6 @@ class DetectionTabFrame(ttk.Frame):
             min_zoom=0.1, max_zoom=64.0, zoom_step=1.1,
         )
         # Linux/X11 wheel shim
-        self.illum_canvas.bind('<Button-4>', lambda e: self._linux_wheel(self._illum_handler, +1, e))
-        self.illum_canvas.bind('<Button-5>', lambda e: self._linux_wheel(self._illum_handler, -1, e))
         self.fringe_canvas.bind('<Button-4>', lambda e: self._linux_wheel(self._fringe_handler, +1, e))
         self.fringe_canvas.bind('<Button-5>', lambda e: self._linux_wheel(self._fringe_handler, -1, e))
 
@@ -411,6 +450,11 @@ class DetectionTabFrame(ttk.Frame):
             int(self.k_dilate.get()) if hasattr(self, 'k_dilate') else 0,
             int(self.k_area.get()) if hasattr(self, 'k_area') else 0,
             float(self.bg_opacity.get()) if hasattr(self, 'bg_opacity') else 1.0,
+            bool(self.hump_var.get()) if hasattr(self, 'hump_var') else False,
+            int(self.hump_width_var.get()) if hasattr(self, 'hump_width_var') else 2,
+            int(self.prune_var.get()) if hasattr(self, 'prune_var') else 0,
+            int(self.fill_loops_var.get()) if hasattr(self, 'fill_loops_var') else 0,
+            int(self.min_fragment_var.get()) if hasattr(self, 'min_fragment_var') else 0,
         )
     # Record latest params; render or queue
         self._pending_params = params
@@ -448,8 +492,41 @@ class DetectionTabFrame(ttk.Frame):
                 opened_bool = opened.astype(bool)
                 opened_bool = remove_small_objects(opened_bool, min_size=int(self.k_area.get()))
                 opened = opened_bool.astype(np.uint8)
+            
+            # Fill small loops (holes in binary mask)
+            if len(params) > 16 and params[16] > 0:
+                opened = fill_holes(opened, min_size=params[16])
+
             traced = skeletonize(opened.astype(bool)).astype(np.uint8)
-            self._binary_mask = 255 - (traced * 255).astype(np.uint8)
+            
+            # Apply spur pruning if requested
+            if len(params) > 15 and params[15] > 0:
+                traced = remove_branches(traced, max_length=params[15])
+            
+            # Apply hump removal if requested
+            if len(params) > 13 and params[13]:
+                max_w = params[14] if len(params) > 14 else 2
+                traced = remove_humps(traced, max_width=max_w)
+
+            # Remove small fragments (dust) from skeleton
+            if len(params) > 17 and params[17] > 0:
+                # traced might be 0/255 or 0/1 depending on previous steps
+                traced_bool = traced > 0
+                traced_bool = remove_small_objects(traced_bool, min_size=params[17])
+                traced = (traced_bool.astype(np.uint8) * 255) # Convert to 0/255
+            elif traced.max() == 1:
+                # Normalize to 0/255 if it was 0/1
+                traced = traced * 255
+
+            # Ensure traced is 0/255 before creating mask
+            # If traced was already 0/255, the above elif didn't run.
+            # If traced was 0/1, it is now 0/255.
+            
+            # Final check to ensure we are in 0/255 range for display/saving
+            if traced.max() == 1:
+                 traced = traced * 255
+
+            self._binary_mask = 255 - traced
             # bg_fade is inverse of opacity: 0 => full gray, 1 => white
             bg_fade = 1.0 - (float(self.bg_opacity.get()) if hasattr(self, 'bg_opacity') else 1.0)
             overlay = overlay_mask_on_gray(enh, traced, line_alpha=1.0,
@@ -507,35 +584,7 @@ class DetectionTabFrame(ttk.Frame):
             self._last_illum_bgr = illum_bgr
             self._last_overlay_bgr = overlay_bgr
             # Original overlay feature removed: display processed illumination and fringe directly.
-            illum_disp = illum_bgr
             fringe_disp = overlay_bgr
-
-            # Illumination viewer
-            if illum_disp is not None:
-                photo_illum = to_photoimage_from_bgr_with_scale(illum_disp, scale=self._illum_zoom)
-                self._photo_illum = photo_illum
-                if self._illum_img_id is None:
-                    self._illum_img_id = self.illum_canvas.create_image(0, 0, anchor='nw', image=photo_illum)
-                else:
-                    self.illum_canvas.itemconfig(self._illum_img_id, image=photo_illum)
-                try:
-                    cw = max(1, int(self.illum_canvas.winfo_width()))
-                    ch = max(1, int(self.illum_canvas.winfo_height()))
-                except Exception:
-                    cw = photo_illum.width(); ch = photo_illum.height()
-                iw, ih = photo_illum.width(), photo_illum.height()
-                margin = max(cw, ch, iw, ih) // 2
-                self.illum_canvas.config(scrollregion=(-margin, -margin, iw + margin, ih + margin))
-                if not self._illum_centered:
-                    total_w = (iw + 2 * margin); total_h = (ih + 2 * margin)
-                    left_px = margin + max(0, (iw - cw) // 2)
-                    top_px = margin + max(0, (ih - ch) // 2)
-                    try:
-                        self.illum_canvas.xview_moveto(left_px / max(1, total_w))
-                        self.illum_canvas.yview_moveto(top_px / max(1, total_h))
-                    except Exception:
-                        pass
-                    self._illum_centered = True
 
             # Fringe viewer
             if fringe_disp is not None:
