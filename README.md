@@ -6,6 +6,8 @@ SpellBook is a Tkinter-based desktop tool for:
 3. Manual mask touch‑up (add/remove/link endpoints)
 4. Overlay visualization for quality review
 
+> **Note:** A detailed user manual is available in `help.html`.
+
 ---
 ## 1. Repository Layout
 
@@ -70,31 +72,51 @@ Right panel sliders:
 | Angle ± / Angle step | Angular sweep around horizontal for oriented opening (coverage vs. speed). |
 | Dilate px | Thickens detected ridges before skeletonization. |
 | Min area | Removes small specks before skeletonizing. |
-| Background fade | Dims background under overlay for visibility. |
+| Prune spurs | Removes small branches from the skeletonized fringes. |
+| Fill loops | Closes small holes within fringes. |
+| Min fragment | Removes isolated dust or noise specks. |
+| Hump Width | Flattens fringes by removing "humps" (0 = off). |
+| Background opacity | Adjusts the visibility of the original image behind the detected fringes. |
 
 After adjustments the overlay viewer updates automatically (debounced ~180 ms).
 
-### Step 3: Save Automatic Result
-Click `Save Fringes as Binary` to export the current binary mask (0 = fringe, 255 = background).
+### Step 3: Overlay & Registration (Overlay Tab)
+Switch to `Overlay` to align a "Shot" image with a "Reference" image:
+1. Load Reference and Shot images.
+2. Use **Move Both** (Right-click drag) or **Move Shot** (Left-click drag) to align.
+3. Use arrow keys or on-screen buttons for 1px nudge precision.
+4. Adjust **Shot Opacity** (default 0.5) to check alignment.
+5. Use **Crop Mode** to define a region of interest and crop both images simultaneously.
+6. Save the aligned images for further processing.
 
-### Step 4: Fine Editing (Editor Tab)
+### Step 4: Save Automatic Result
+Click `Save Fringes as Binary` in the Detection tab to export the current binary mask (0 = fringe, 255 = background).
+
+### Step 5: Fine Editing (Editor Tab)
 Switch to `Editor`:
-1. `Open Binary` – load a saved mask OR create one from an image (thresholded automatically).
-2. (Optional) `Open Background` – load a grayscale backdrop for contextual editing.
-3. Mode radio buttons: `Add Black` paints fringe (sets pixels to 0); `Remove Black` erases fringe (sets to 255).
-4. Mouse:
+1. `Open Binary` – load a saved mask OR create one from an image.
+2. (Optional) `Open Background` – load a grayscale backdrop.
+3. **Brush Modes**:
+   - `Add/Remove Black`: Draw or erase binary fringe lines.
+   - `Add/Remove Mask (Gray)`: Paint a gray mask to exclude regions.
+4. **Mouse**:
    - Left drag: paint / erase.
    - Ctrl + wheel: change brush radius.
    - Wheel: zoom.
    - Right drag: pan.
-5. `Link endpoints` + Angle / Link tol (px): connect nearby skeleton endpoints within tolerance & angular constraint.
-6. `½ Angle, 2× Tol` quickly broadens search tolerance while tightening angle.
-7. `Color comps` optionally pseudo‑colors connected components.
-8. `Undo` reverts last stroke (stack depth 20).
+5. **Tools**:
+   - `Link endpoints`: Connect nearby skeleton endpoints within tolerance & angular constraint.
+   - `Magic2 Tester`: Draws an invisible vertical line to highlight touching fringes (useful for splitting).
+   - `Color comps`: Pseudo‑colors connected components.
+   - `Overlay Binary` / `Merge Overlay`: Combine another binary mask with the current one.
+6. **Visualization**:
+   - `Background brightness`: Adjust background intensity.
+   - `Fringe Opacity`: Adjust fringe overlay visibility.
+7. `Undo` reverts last stroke.
 
 No mask is auto‑loaded into the Editor; you decide when to load or import one.
 
-### Step 5: Iterate & Export
+### Step 6: Iterate & Export
 Refine, then `Save As…` in the Editor for a cleaned fringe mask. Use saved masks for downstream analysis or comparison.
 
 ---
