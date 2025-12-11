@@ -134,18 +134,26 @@ class DetectionTabFrame(ttk.Frame):
 
         make_help_icon(left_title, (
             'Detection Tab Purpose:\n'
-            'This tab has two sections:\n'
-            '- Binary Illumination illuminates the image for better fringe detection\n'
-            '- Fringe Detection detects and traces the fringes from the illuminated image \n'
+            'This tab illuminates the image for better fringe\n'
+            'detection then detects and traces the fringes \n'
             '\n'
             'Controls:\n'
             '- Right-click drag to move image\n'
             '- Mouse wheel to zoom\n'
             '\n'
-            'Binary Illumination Features:\n'
+            'Fringe Detection Features:\n'
             '- Blur σ: Changes sharpness of blur\n'
-            '- CLAHE clip/tile: Adjusts local contrast enhancement\n'
-            '- Edit slider ranges: Customize min/max values for sliders\n'
+            '- Line length: Adjusts the length of detected fringes\n'
+            '- Line thickness: Adjusts the thickness of detected fringes\n'
+            '- Max angle°: Adjusts the maximum angle for fringe detection\n'
+            '- Angle step: Adjusts the angle step for fringe detection\n'
+            '- Dialte(px): Adjusts the dilation for fringe detection\n'
+            '- Min area: Adjusts the minimum area for fringe detection\n'
+            '- Prune spurs: Removes small branches from fringes\n'
+            '- Fill loops: Removes small loops/circles from fringes\n'
+            '- Min fragment size: Removes small fragments (dust) from fringes\n'
+            '- Hump Width: Flattens Fringes by removing humps (0 = off)\n'
+            '- Background opacity: Adjusts the background opacity for better fringe viewing\n'
 			))
         # Row with Browse and Save
         btn_row = ttk.Frame(ctrl)
@@ -160,7 +168,7 @@ class DetectionTabFrame(ttk.Frame):
 
         ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
 
-        self.sigma_var = tk.DoubleVar(value=5.0)
+        self.sigma_var = tk.DoubleVar(value=7.0)
         self.clip_var = tk.DoubleVar(value=100.0)
         self.tile_var = tk.IntVar(value=8)
         self.win_var = tk.IntVar(value=31)
@@ -174,15 +182,14 @@ class DetectionTabFrame(ttk.Frame):
         # (Sauvola win/k/post open removed; values still used internally)
         
         # Fringe detection parameters
-        self.k_len = tk.IntVar(value=41)
-        self.k_thk = tk.IntVar(value=1)
-        self.k_ang = tk.DoubleVar(value=8.0)
-        self.k_step = tk.DoubleVar(value=2.0)
-        self.k_dilate = tk.IntVar(value=0)
+        self.k_len = tk.IntVar(value=20)
+        self.k_thk = tk.IntVar(value=2)
+        self.k_ang = tk.DoubleVar(value=5.0)
+        self.k_step = tk.DoubleVar(value=1.0)
+        self.k_dilate = tk.IntVar(value=2)
         self.k_area = tk.IntVar(value=0)
         # Hump removal
-        self.hump_var = tk.BooleanVar(value=False)
-        self.hump_width_var = tk.IntVar(value=2)
+        self.hump_width_var = tk.IntVar(value=0)
         # Branch pruning
         self.prune_var = tk.IntVar(value=0)
         # Fill loops
@@ -214,12 +221,9 @@ class DetectionTabFrame(ttk.Frame):
         s_frag = self._make_slider_row(ctrl, 'Min fragment', self.min_fragment_var, 0, 100, is_int=True)
         self._slider_meta['Min fragment'] = {'scale': s_frag, 'var': self.min_fragment_var, 'is_int': True, 'frm': 0, 'to': 100}
 
-        # Hump removal checkbox
-        hump_chk = ttk.Checkbutton(ctrl, text='Remove Humps', variable=self.hump_var, command=self.on_param_change)
-        hump_chk.pack(anchor='w', padx=6, pady=2)
-
-        s_hump = self._make_slider_row(ctrl, 'Hump Width', self.hump_width_var, 1, 30, is_int=True)
-        self._slider_meta['Hump Width'] = {'scale': s_hump, 'var': self.hump_width_var, 'is_int': True, 'frm': 1, 'to': 30}
+        # Hump removal
+        s_hump = self._make_slider_row(ctrl, 'Hump Width', self.hump_width_var, 0, 30, is_int=True)
+        self._slider_meta['Hump Width'] = {'scale': s_hump, 'var': self.hump_width_var, 'is_int': True, 'frm': 0, 'to': 30}
 
         # Background opacity slider for fringe overlay background
         s_bg = self._make_slider_row(ctrl, 'Background opacity', self.bg_opacity, 0.0, 1.0, is_int=False, fmt="{:.2f}")
@@ -450,7 +454,7 @@ class DetectionTabFrame(ttk.Frame):
             int(self.k_dilate.get()) if hasattr(self, 'k_dilate') else 0,
             int(self.k_area.get()) if hasattr(self, 'k_area') else 0,
             float(self.bg_opacity.get()) if hasattr(self, 'bg_opacity') else 1.0,
-            bool(self.hump_var.get()) if hasattr(self, 'hump_var') else False,
+            (int(self.hump_width_var.get()) > 0) if hasattr(self, 'hump_width_var') else False,
             int(self.hump_width_var.get()) if hasattr(self, 'hump_width_var') else 2,
             int(self.prune_var.get()) if hasattr(self, 'prune_var') else 0,
             int(self.fill_loops_var.get()) if hasattr(self, 'fill_loops_var') else 0,

@@ -104,8 +104,10 @@ class FringeEditorFrame(tk.Frame):
 			'- Link tolerance: Adjusts distance tolerance of Link endpoint Feature\n'
 			'ie. Endpoints will only links if another endpoint is within the\n'
 			'specified distance and angle constraints.\n'
-			'Color comps: Toggle coloring of connected components for easier visualization\n'
-			'- Undo last strokes\n'
+			'- Magic2 Tester: Draws an invisable vertical line in the center of the canvas\n' \
+			'Any fringes that touch the line will be highlighted, used to split fringes.\n'
+			'- Color comps: Toggle coloring of connected components for easier visualization\n'
+			'- Undo: Undo last strokes\n'
 			))
 		
 		# Body frame to hold all interactive toolbar widgets (isolated from header layout)
@@ -135,7 +137,7 @@ class FringeEditorFrame(tk.Frame):
 		self.brush_var = tk.DoubleVar(value=1.0)
 		add(ttk.Label(self.toolbar_body, text="Background brightness"))
 		self.bg_brightness = tk.DoubleVar(value=5.0)
-		self.bg_scale = ttk.Scale(self.toolbar_body, from_=1.0, to=100.0, orient="horizontal", variable=self.bg_brightness, command=self._on_bg_brightness_changed)
+		self.bg_scale = ttk.Scale(self.toolbar_body, from_=1.0, to=75.0, orient="horizontal", variable=self.bg_brightness, command=self._on_bg_brightness_changed)
 		add(self.bg_scale)
 		add(ttk.Label(self.toolbar_body, text="Fringe Opacity"))
 		self.fringe_opacity = tk.DoubleVar(value=1.0)

@@ -67,7 +67,7 @@ class OverlayTabFrame(ttk.Frame):
         ttk.Button(ctrl, text='Load Reference Image', command=self._load_ref).pack(anchor='w', pady=4)
         ttk.Button(ctrl, text='Load Shot Image', command=self._load_shot).pack(anchor='w', pady=4)
         ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
-        self.shot_alpha = tk.DoubleVar(value=0.0)
+        self.shot_alpha = tk.DoubleVar(value=0.5)
         shot_scale = self._make_slider_row(ctrl,'Shot opacity',self.shot_alpha,0.0,1.0,fmt='{:.2f}',command=lambda *_: self._schedule_render())
         # Make trough clicks step by ±0.1 instead of jumping to min/max
         def _shot_trough_click(event, scale=shot_scale, var=self.shot_alpha):
@@ -95,7 +95,7 @@ class OverlayTabFrame(ttk.Frame):
         except Exception:
             pass
         ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
-        self.ref_brightness = tk.DoubleVar(value=5.0); self.shot_brightness = tk.DoubleVar(value=5.0)
+        self.ref_brightness = tk.DoubleVar(value=8.0); self.shot_brightness = tk.DoubleVar(value=8.0)
         self._make_slider_row(ctrl,'Reference brightness',self.ref_brightness,1.0,10.0,fmt='{:.1f}',command=lambda *_: self._schedule_render())
         self._make_slider_row(ctrl,'Shot brightness',self.shot_brightness,1.0,10.0,fmt='{:.1f}',command=lambda *_: self._schedule_render())
         ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
