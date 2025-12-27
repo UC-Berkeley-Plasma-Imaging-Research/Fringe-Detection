@@ -74,7 +74,6 @@ Right panel sliders:
 | Min area | Removes small specks before skeletonizing. |
 | Prune spurs | Removes small branches from the skeletonized fringes. |
 | Fill loops | Closes small holes within fringes. |
-| Min fragment | Removes isolated dust or noise specks. |
 | Hump Width | Flattens fringes by removing "humps" (0 = off). |
 | Background opacity | Adjusts the visibility of the original image behind the detected fringes. |
 
@@ -90,7 +89,7 @@ Switch to `Overlay` to align a "Shot" image with a "Reference" image:
 6. Save the aligned images for further processing.
 
 ### Step 4: Save Automatic Result
-Click `Save Fringes as Binary` in the Detection tab to export the current binary mask (0 = fringe, 255 = background).
+Click `Save Fringes as Binary` in the  to export the current binary mask (0 = fringe, 255 = background).
 
 ### Step 5: Fine Editing (Editor Tab)
 Switch to `Editor`:

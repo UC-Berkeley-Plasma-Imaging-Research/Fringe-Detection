@@ -29,7 +29,20 @@ class OverlayTabFrame(ttk.Frame):
         self._build_ui(); self._bind_events()
 
     def _build_ui(self):
-        ctrl = ttk.Frame(self); ctrl.pack(side='left', fill='y', padx=8, pady=8); ctrl.config(width=260); ctrl.pack_propagate(False)
+        # Left control panel container
+        ctrl_container = ttk.Frame(self)
+        ctrl_container.pack(side='left', fill='y', padx=8, pady=8)
+        ctrl_container.config(width=260)
+        ctrl_container.pack_propagate(False)
+
+        # Control frame (non-scrollable)
+        try:
+            bg_color = self.cget('background') or '#f0f0f0'
+        except Exception:
+            bg_color = '#f0f0f0'
+        ctrl = ttk.Frame(ctrl_container)
+        ctrl.pack(fill='both', expand=True)
+
         # Title + help icon
         title_row = ttk.Frame(ctrl); title_row.pack(anchor='w', fill='x')
         ttk.Label(title_row, text='Overlay', font=('Segoe UI', 10, 'bold')).pack(side='left')
@@ -64,8 +77,17 @@ class OverlayTabFrame(ttk.Frame):
             '- Nudge buttons for 1px adjustment of Shot image\n'
             '- Save Reference and Shot images to EditedImages\n'
         ))
-        ttk.Button(ctrl, text='Load Reference Image', command=self._load_ref).pack(anchor='w', pady=4)
-        ttk.Button(ctrl, text='Load Shot Image', command=self._load_shot).pack(anchor='w', pady=4)
+        ref_row = ttk.Frame(ctrl)
+        ref_row.pack(anchor='w', pady=4, fill='x')
+        ttk.Button(ref_row, text='Load Reference Image', command=self._load_ref).pack(side='left')
+        # moved: place Load Shot next to Load Reference
+        ttk.Button(ref_row, text='Load Shot Image', command=self._load_shot).pack(side='left', padx=(6, 0))
+
+        shot_row = ttk.Frame(ctrl)
+        shot_row.pack(anchor='w', pady=4, fill='x')
+        # moved: place Save Reference in the shot row next to Save Shot
+        ttk.Button(shot_row, text='Save Reference Image', command=self._save_ref).pack(side='left')
+        ttk.Button(shot_row, text='Save Shot Image', command=self._save_shot).pack(side='left', padx=(6, 0))
         ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
         self.shot_alpha = tk.DoubleVar(value=0.5)
         shot_scale = self._make_slider_row(ctrl,'Shot opacity',self.shot_alpha,0.0,1.0,fmt='{:.2f}',command=lambda *_: self._schedule_render())
@@ -113,9 +135,7 @@ class OverlayTabFrame(ttk.Frame):
         mk_btn('→','Right',lambda: self._nudge_shot(1,0),1,2)
         mk_btn('↓','Down',lambda: self._nudge_shot(0,1),2,1)
         ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
-        save_row = ttk.Frame(ctrl); save_row.pack(fill='x', pady=4)
-        ttk.Button(save_row,text='Save Reference Image',command=self._save_ref).pack(side='left', padx=(0,6))
-        ttk.Button(save_row,text='Save Shot Image',command=self._save_shot).pack(side='left')
+        # Save buttons moved next to their corresponding Load buttons above
         right = ttk.Frame(self); right.pack(side='left', fill='both', expand=True, padx=8, pady=8); right.pack_propagate(False)
         self.canvas = tk.Canvas(right,bg='black', highlightthickness=0); self.canvas.pack(fill='both', expand=True)
 

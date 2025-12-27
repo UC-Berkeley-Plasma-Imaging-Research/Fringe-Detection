@@ -42,6 +42,12 @@ class EvenApp(tk.Tk):
                 self.set_status('Failed to load Detection tab')
             except Exception:
                 pass
+            # Log exception to console for debugging
+            try:
+                import traceback
+                traceback.print_exc()
+            except Exception:
+                pass
 
         # Editor tab
         editor_tab = ttk.Frame(self.notebook)

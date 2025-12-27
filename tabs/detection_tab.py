@@ -19,6 +19,7 @@ from fringe_detection import (
     remove_humps,
     remove_branches,
     fill_holes,
+    remove_steep_segments,
 )
 from fringe_detection.zoom_handler import ZoomPanHandler
 
@@ -68,7 +69,7 @@ class DetectionTabFrame(ttk.Frame):
         # Left control panel container
         ctrl_container = ttk.Frame(self)
         ctrl_container.pack(side='left', fill='y', padx=8, pady=8)
-        ctrl_container.config(width=290)
+        ctrl_container.config(width=260)
         ctrl_container.pack_propagate(False)
 
         # Canvas and Scrollbar for scrolling
@@ -92,13 +93,24 @@ class DetectionTabFrame(ttk.Frame):
         # Create window in canvas
         canvas_window = canvas.create_window((0, 0), window=ctrl, anchor="nw")
 
+        def check_scrollbar():
+            bbox = canvas.bbox("all")
+            if not bbox: return
+            _, _, _, height = bbox
+            if height > canvas.winfo_height():
+                scrollbar.pack(side="right", fill="y")
+            else:
+                scrollbar.pack_forget()
+
         def configure_scroll_region(event):
             canvas.configure(scrollregion=canvas.bbox("all"))
+            check_scrollbar()
         
         ctrl.bind("<Configure>", configure_scroll_region)
 
         def configure_window_width(event):
             canvas.itemconfig(canvas_window, width=event.width)
+            check_scrollbar()
 
         canvas.bind("<Configure>", configure_window_width)
 
@@ -118,7 +130,7 @@ class DetectionTabFrame(ttk.Frame):
 
         left_title = ttk.Frame(ctrl)
         left_title.pack(anchor='w', fill='x')
-        ttk.Label(left_title, text='Binary Illumination', font=('Segoe UI', 10, 'bold')).pack(side='left')
+        ttk.Label(left_title, text='Fringe Detection and Clean Up', font=('Segoe UI', 10, 'bold')).pack(side='left')
 
         def make_help_icon(parent, tooltip_text, side='right'):
             try:
@@ -142,32 +154,27 @@ class DetectionTabFrame(ttk.Frame):
             '- Mouse wheel to zoom\n'
             '\n'
             'Fringe Detection Features:\n'
-            '- Blur σ: Changes sharpness of blur\n'
+            '- Sharpness: Changes sharpness of the binary image\n'
             '- Line length: Adjusts the length of detected fringes\n'
             '- Line thickness: Adjusts the thickness of detected fringes\n'
             '- Max angle°: Adjusts the maximum angle for fringe detection\n'
-            '- Angle step: Adjusts the angle step for fringe detection\n'
             '- Dialte(px): Adjusts the dilation for fringe detection\n'
             '- Min area: Adjusts the minimum area for fringe detection\n'
             '- Prune spurs: Removes small branches from fringes\n'
             '- Fill loops: Removes small loops/circles from fringes\n'
-            '- Min fragment size: Removes small fragments (dust) from fringes\n'
             '- Hump Width: Flattens Fringes by removing humps (0 = off)\n'
             '- Background opacity: Adjusts the background opacity for better fringe viewing\n'
-			))
+            ))
+
         # Row with Browse and Save
         btn_row = ttk.Frame(ctrl)
         btn_row.pack(anchor='w', pady=4)
-        ttk.Button(btn_row, text='Browse & Load', command=self.load_image_dialog).pack(side='left')
+        ttk.Button(btn_row, text='Load Image', command=self.load_image_dialog).pack(side='left')
         ttk.Button(btn_row, text='Save Fringes as Binary', command=self.save_result).pack(side='left', padx=(6, 0))
 
-        # Edit slider ranges + status below load/save
-        ttk.Button(ctrl, text='Edit slider ranges', command=self.open_slider_ranges).pack(anchor='w', pady=(6, 2))
-        self.status = ttk.Label(ctrl, text='Ready', wraplength=110)
-        self.status.pack(anchor='w', pady=(0, 6))
+        # Edit sliders (button moved to end)
 
-        ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
-
+        # Initialize slider metadata and default vars before creating the Background opacity slider
         self.sigma_var = tk.DoubleVar(value=7.0)
         self.clip_var = tk.DoubleVar(value=100.0)
         self.tile_var = tk.IntVar(value=8)
@@ -176,8 +183,19 @@ class DetectionTabFrame(ttk.Frame):
         self.post_var = tk.IntVar(value=1)
         self._slider_meta = {}
 
-        s1 = self._make_slider_row(ctrl, 'Blur σ', self.sigma_var, 0.1, 10.0, is_int=False, fmt="{:.1f}")
-        self._slider_meta['Blur σ'] = {'scale': s1, 'var': self.sigma_var, 'is_int': False, 'frm': 0.1, 'to': 10.0}
+        # Background opacity slider placed near load/save
+        self.bg_opacity = tk.DoubleVar(value=1.0)
+        s_bg = self._make_slider_row(ctrl, 'Background opacity', self.bg_opacity, 0.0, 1.0, is_int=False, fmt="{:.2f}")
+        self._slider_meta['Background opacity'] = {'scale': s_bg, 'var': self.bg_opacity, 'is_int': False, 'frm': 0.0, 'to': 1.0}
+
+        self.status = ttk.Label(ctrl, text='Ready', wraplength=110)
+        self.status.pack(anchor='w', pady=(0, 6))
+
+        ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
+        
+        ttk.Label(ctrl, text='Fringe Detection', font=('Segoe UI', 9, 'bold')).pack(anchor='w', pady=(4, 2))
+        s1 = self._make_slider_row(ctrl, 'Background Image Sharpness', self.sigma_var, 0.1, 10.0, is_int=False, fmt="{:.1f}")
+        self._slider_meta['Background Image Sharpness'] = {'scale': s1, 'var': self.sigma_var, 'is_int': False, 'frm': 0.1, 'to': 10.0}
 
         # (Sauvola win/k/post open removed; values still used internally)
         
@@ -185,49 +203,54 @@ class DetectionTabFrame(ttk.Frame):
         self.k_len = tk.IntVar(value=20)
         self.k_thk = tk.IntVar(value=2)
         self.k_ang = tk.DoubleVar(value=5.0)
-        self.k_step = tk.DoubleVar(value=1.0)
         self.k_dilate = tk.IntVar(value=2)
         self.k_area = tk.IntVar(value=0)
+        # Auto-compute Min area from length/thickness/dilate (always enabled)
+        self.k_area_auto = tk.BooleanVar(value=True)
         # Hump removal
         self.hump_width_var = tk.IntVar(value=0)
         # Branch pruning
         self.prune_var = tk.IntVar(value=0)
         # Fill loops
         self.fill_loops_var = tk.IntVar(value=0)
-        # Min fragment size (dust removal)
-        self.min_fragment_var = tk.IntVar(value=0)
+        # Dust removal
+        self.dust_var = tk.IntVar(value=0)
+        # Min fragment feature removed; fragment cleanup handled by other settings
         # Background opacity for Fringe view: 0 => white background, 1 => full grayscale background
-        self.bg_opacity = tk.DoubleVar(value=1.0)
 
-        s7 = self._make_slider_row(ctrl, 'Line length', self.k_len, 5, 200, is_int=True)
-        self._slider_meta['Line length'] = {'scale': s7, 'var': self.k_len, 'is_int': True, 'frm': 5, 'to': 200}
-        s8 = self._make_slider_row(ctrl, 'Line thickness', self.k_thk, 1, 20, is_int=True)
-        self._slider_meta['Line thickness'] = {'scale': s8, 'var': self.k_thk, 'is_int': True, 'frm': 1, 'to': 20}
+        s7 = self._make_slider_row(ctrl, 'Minimum Fringe Length', self.k_len, 5, 200, is_int=True)
+        self._slider_meta['Minimum Fringe Length'] = {'scale': s7, 'var': self.k_len, 'is_int': True, 'frm': 5, 'to': 200}
+        s8 = self._make_slider_row(ctrl, 'Minimum Fringe Thickness', self.k_thk, 1, 8, is_int=True)
+        self._slider_meta['Minimum Fringe Thickness'] = {'scale': s8, 'var': self.k_thk, 'is_int': True, 'frm': 1, 'to': 8}
         s9 = self._make_slider_row(ctrl, 'Max angle°', self.k_ang, 0.0, 90.0, is_int=False, fmt="{:.1f}")
         self._slider_meta['Max angle°'] = {'scale': s9, 'var': self.k_ang, 'is_int': False, 'frm': 0.0, 'to': 90.0}
-        s10 = self._make_slider_row(ctrl, 'Angle step°', self.k_step, 0.5, 10.0, is_int=False, fmt="{:.1f}")
-        self._slider_meta['Angle step°'] = {'scale': s10, 'var': self.k_step, 'is_int': False, 'frm': 0.5, 'to': 10.0}
         s11 = self._make_slider_row(ctrl, 'Dilate (px)', self.k_dilate, 0, 25, is_int=True)
         self._slider_meta['Dilate (px)'] = {'scale': s11, 'var': self.k_dilate, 'is_int': True, 'frm': 0, 'to': 25}
-        s12 = self._make_slider_row(ctrl, 'Min area', self.k_area, 0, 10000, is_int=True)
-        self._slider_meta['Min area'] = {'scale': s12, 'var': self.k_area, 'is_int': True, 'frm': 0, 'to': 10000}
-        
+        # Min area is now always computed automatically from length/thickness/dilate
+        # Keep internal var `self.k_area` to store the computed value but remove slider UI.
+
+        # Post Detection Clean-Up
+        ttk.Label(ctrl, text='Post Detection Clean-Up', font=('Segoe UI', 9, 'bold')).pack(anchor='w', pady=(6, 2))
+
         s_prune = self._make_slider_row(ctrl, 'Prune spurs', self.prune_var, 0, 30, is_int=True)
         self._slider_meta['Prune spurs'] = {'scale': s_prune, 'var': self.prune_var, 'is_int': True, 'frm': 0, 'to': 30}
 
         s_loops = self._make_slider_row(ctrl, 'Fill loops (px)', self.fill_loops_var, 0, 100, is_int=True)
         self._slider_meta['Fill loops (px)'] = {'scale': s_loops, 'var': self.fill_loops_var, 'is_int': True, 'frm': 0, 'to': 100}
 
-        s_frag = self._make_slider_row(ctrl, 'Min fragment', self.min_fragment_var, 0, 100, is_int=True)
-        self._slider_meta['Min fragment'] = {'scale': s_frag, 'var': self.min_fragment_var, 'is_int': True, 'frm': 0, 'to': 100}
+        s_dust = self._make_slider_row(ctrl, 'Remove Dust (px)', self.dust_var, 0, 100, is_int=True)
+        self._slider_meta['Remove Dust (px)'] = {'scale': s_dust, 'var': self.dust_var, 'is_int': True, 'frm': 0, 'to': 100}
+
+        # (Min fragment slider removed)
 
         # Hump removal
         s_hump = self._make_slider_row(ctrl, 'Hump Width', self.hump_width_var, 0, 30, is_int=True)
         self._slider_meta['Hump Width'] = {'scale': s_hump, 'var': self.hump_width_var, 'is_int': True, 'frm': 0, 'to': 30}
 
-        # Background opacity slider for fringe overlay background
-        s_bg = self._make_slider_row(ctrl, 'Background opacity', self.bg_opacity, 0.0, 1.0, is_int=False, fmt="{:.2f}")
-        self._slider_meta['Background opacity'] = {'scale': s_bg, 'var': self.bg_opacity, 'is_int': False, 'frm': 0.0, 'to': 1.0}
+        # Background opacity slider for fringe overlay background (moved above)
+
+        # Place 'Edit Sliders' after all controls
+        ttk.Button(ctrl, text='Edit Sliders', command=self.open_slider_ranges).pack(anchor='w', pady=(6, 2))
 
         ttk.Separator(ctrl, orient='horizontal').pack(fill='x', pady=6)
         
@@ -439,6 +462,21 @@ class DetectionTabFrame(ttk.Frame):
         if self.src_img is None:
             self.set_status('No image loaded')
             return
+        # Compute Min area automatically when auto enabled, else use slider value
+        area_val = int(self.k_area.get()) if hasattr(self, 'k_area') else 0
+        try:
+            if hasattr(self, 'k_area_auto') and self.k_area_auto.get():
+                eff_w = max(1, int(self.k_thk.get()) + 2 * int(self.k_dilate.get()))
+                area_auto = int(round(eff_w * int(self.k_len.get()) * 1.15))
+                area_val = area_auto
+                try:
+                    # reflect computed value in UI slider
+                    self.k_area.set(area_auto)
+                except Exception:
+                    pass
+        except Exception:
+            area_val = int(self.k_area.get()) if hasattr(self, 'k_area') else 0
+
         # Include ALL relevant parameters (fringe + shading) so changes during an active render queue a new one.
         params = (
             float(self.sigma_var.get()),
@@ -450,15 +488,15 @@ class DetectionTabFrame(ttk.Frame):
             int(self.k_len.get()) if hasattr(self, 'k_len') else 0,
             int(self.k_thk.get()) if hasattr(self, 'k_thk') else 0,
             float(self.k_ang.get()) if hasattr(self, 'k_ang') else 0.0,
-            float(self.k_step.get()) if hasattr(self, 'k_step') else 0.0,
             int(self.k_dilate.get()) if hasattr(self, 'k_dilate') else 0,
-            int(self.k_area.get()) if hasattr(self, 'k_area') else 0,
+            int(area_val),
             float(self.bg_opacity.get()) if hasattr(self, 'bg_opacity') else 1.0,
             (int(self.hump_width_var.get()) > 0) if hasattr(self, 'hump_width_var') else False,
             int(self.hump_width_var.get()) if hasattr(self, 'hump_width_var') else 2,
             int(self.prune_var.get()) if hasattr(self, 'prune_var') else 0,
             int(self.fill_loops_var.get()) if hasattr(self, 'fill_loops_var') else 0,
             int(self.min_fragment_var.get()) if hasattr(self, 'min_fragment_var') else 0,
+            int(self.dust_var.get()) if hasattr(self, 'dust_var') else 0,
         )
     # Record latest params; render or queue
         self._pending_params = params
@@ -485,10 +523,15 @@ class DetectionTabFrame(ttk.Frame):
             method = 'Otsu'
             bw = binarize(enh, method=method, blur=0)
             bw01 = (bw > 0).astype(np.uint8)
+            
+            # Use fixed 1° step for orientation sampling
+            max_ang = float(self.k_ang.get()) if hasattr(self, 'k_ang') else 8.0
+            calc_step = 1.0
+            
             opened = oriented_opening(bw01, length=int(self.k_len.get()) if hasattr(self, 'k_len') else 41,
                                       thickness=int(self.k_thk.get()) if hasattr(self, 'k_thk') else 1,
-                                      max_angle=float(self.k_ang.get()) if hasattr(self, 'k_ang') else 8.0,
-                                      step=float(self.k_step.get()) if hasattr(self, 'k_step') else 2.0)
+                                      max_angle=max_ang,
+                                      step=calc_step)
             if hasattr(self, 'k_dilate') and int(self.k_dilate.get()) > 0:
                 K = cv2.getStructuringElement(cv2.MORPH_RECT, (int(self.k_dilate.get()), int(self.k_dilate.get())))
                 opened = cv2.dilate(opened, K, 1)
@@ -498,28 +541,34 @@ class DetectionTabFrame(ttk.Frame):
                 opened = opened_bool.astype(np.uint8)
             
             # Fill small loops (holes in binary mask)
-            if len(params) > 16 and params[16] > 0:
-                opened = fill_holes(opened, min_size=params[16])
+            if len(params) > 15 and params[15] > 0:
+                opened = fill_holes(opened, min_size=params[15])
 
             traced = skeletonize(opened.astype(bool)).astype(np.uint8)
             
             # Apply spur pruning if requested
-            if len(params) > 15 and params[15] > 0:
-                traced = remove_branches(traced, max_length=params[15])
+            if len(params) > 14 and params[14] > 0:
+                traced = remove_branches(traced, max_length=params[14])
+            
+            # Apply steep segment removal using Max angle
+            max_ang = float(self.k_ang.get()) if hasattr(self, 'k_ang') else 0.0
+            if max_ang > 0:
+                 traced = remove_steep_segments(traced, max_angle_deg=max_ang)
             
             # Apply hump removal if requested
-            if len(params) > 13 and params[13]:
-                max_w = params[14] if len(params) > 14 else 2
+            if len(params) > 12 and params[12]:
+                max_w = params[13] if len(params) > 13 else 2
                 traced = remove_humps(traced, max_width=max_w)
 
-            # Remove small fragments (dust) from skeleton
+            # Apply dust removal (small object removal on skeleton)
             if len(params) > 17 and params[17] > 0:
-                # traced might be 0/255 or 0/1 depending on previous steps
-                traced_bool = traced > 0
-                traced_bool = remove_small_objects(traced_bool, min_size=params[17])
-                traced = (traced_bool.astype(np.uint8) * 255) # Convert to 0/255
-            elif traced.max() == 1:
-                # Normalize to 0/255 if it was 0/1
+                traced_bool = traced.astype(bool)
+                # Use connectivity=2 to handle 8-connected pixels in skeleton
+                traced_bool = remove_small_objects(traced_bool, min_size=params[17], connectivity=2)
+                traced = traced_bool.astype(np.uint8)
+
+            # Normalize to 0/255 if traced is 0/1
+            if traced.max() == 1:
                 traced = traced * 255
 
             # Ensure traced is 0/255 before creating mask

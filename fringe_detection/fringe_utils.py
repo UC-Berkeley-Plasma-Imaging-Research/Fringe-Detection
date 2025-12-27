@@ -313,6 +313,139 @@ def remove_branches(skeleton, max_length=10):
     return (skel * 255).astype(np.uint8)
 
 
+def remove_steep_segments(skeleton, max_angle_deg):
+    """
+    Removes segments from the skeleton that have an angle steeper than max_angle_deg.
+    Segments are paths between junctions or endpoints.
+    """
+    skel = (skeleton > 0).astype(np.uint8)
+    h, w = skel.shape
+    
+    # 1. Find Nodes (Endpoints and Junctions)
+    kernel = np.array([[1,1,1],[1,0,1],[1,1,1]], dtype=np.uint8)
+    neighbors_count = cv2.filter2D(skel, -1, kernel, borderType=cv2.BORDER_CONSTANT)
+    # Nodes are pixels with != 2 neighbors.
+    
+    node_mask = ((neighbors_count != 2) & (skel == 1))
+    nodes = np.argwhere(node_mask)
+    
+    # To quickly check if a pixel is a node
+    is_node = np.zeros_like(skel, dtype=bool)
+    is_node[node_mask] = True
+    
+    # Mask to keep track of visited INTERNAL pixels of segments
+    visited = np.zeros_like(skel, dtype=bool)
+    
+    # Set of processed direct edges (node-to-node) to avoid double counting
+    processed_direct_edges = set()
+    
+    pixels_to_remove = []
+    
+    offsets = [(-1,-1), (-1,0), (-1,1), (0,-1), (0,1), (1,-1), (1,0), (1,1)]
+    
+    for r_start, c_start in nodes:
+        # Check all neighbors to find outgoing segments
+        for dr, dc in offsets:
+            nr, nc = r_start + dr, c_start + dc
+            
+            if 0 <= nr < h and 0 <= nc < w and skel[nr, nc] == 1:
+                # Found a connected pixel
+                
+                if is_node[nr, nc]:
+                    # Direct Node-to-Node connection
+                    p1 = (r_start, c_start)
+                    p2 = (nr, nc)
+                    if p1 > p2: p1, p2 = p2, p1
+                    
+                    if (p1, p2) in processed_direct_edges:
+                        continue
+                    
+                    processed_direct_edges.add((p1, p2))
+                    
+                    # Analyze this short segment
+                    dy = p2[0] - p1[0]
+                    dx = p2[1] - p1[1]
+                    angle = np.degrees(np.arctan2(dy, dx))
+                    
+                    ang_check = angle % 180
+                    if ang_check > 90: ang_check -= 180
+                    
+                    if abs(ang_check) > max_angle_deg:
+                        # For direct connections, we can't easily remove "the edge" without removing a node.
+                        # But usually these are part of a staircase.
+                        # If we remove one of the pixels? No, that breaks nodes.
+                        # Let's skip direct connections for now to be safe.
+                        pass 
+                
+                else:
+                    # Connection to a non-node pixel. This is a segment.
+                    if visited[nr, nc]:
+                        continue
+                        
+                    # Trace the segment
+                    segment_pixels = [(nr, nc)]
+                    curr_r, curr_c = nr, nc
+                    visited[curr_r, curr_c] = True
+                    
+                    found_end = False
+                    end_node = None
+                    
+                    while True:
+                        # Find next neighbor
+                        found_next = False
+                        for ddr, ddc in offsets:
+                            nnr, nnc = curr_r + ddr, curr_c + ddc
+                            if 0 <= nnr < h and 0 <= nnc < w and skel[nnr, nnc] == 1:
+                                # Don't go back to the pixel we just came from
+                                if len(segment_pixels) >= 2:
+                                    if (nnr, nnc) == segment_pixels[-2]:
+                                        continue
+                                elif (nnr, nnc) == (r_start, c_start):
+                                    continue
+                                    
+                                if is_node[nnr, nnc]:
+                                    # Hit a node! Segment ended.
+                                    end_node = (nnr, nnc)
+                                    found_end = True
+                                    break
+                                else:
+                                    # Another internal pixel
+                                    if not visited[nnr, nnc]:
+                                        visited[nnr, nnc] = True
+                                        segment_pixels.append((nnr, nnc))
+                                        curr_r, curr_c = nnr, nnc
+                                        found_next = True
+                                        break
+                        
+                        if found_end:
+                            break
+                        if not found_next:
+                            break
+                    
+                    if found_end:
+                        # Analyze segment
+                        p1 = (r_start, c_start)
+                        p2 = end_node
+                        
+                        dy = p2[0] - p1[0]
+                        dx = p2[1] - p1[1]
+                        angle = np.degrees(np.arctan2(dy, dx))
+                        
+                        # Check deviation from horizontal
+                        ang_check = angle % 180
+                        if ang_check > 90: ang_check -= 180
+                        
+                        if abs(ang_check) > max_angle_deg:
+                            # Remove segment pixels
+                            pixels_to_remove.extend(segment_pixels)
+
+    # Apply removal
+    for r, c in pixels_to_remove:
+        skel[r, c] = 0
+        
+    return (skel * 255).astype(np.uint8)
+
+
 def fill_holes(bw_img, min_size=10):
     """
     Fills holes smaller than min_size in the binary image.

@@ -120,7 +120,7 @@ class FringeEditorFrame(tk.Frame):
 		add(ttk.Button(self.toolbar_body, text="Open Background", command=self.open_background))
 		add(ttk.Button(self.toolbar_body, text="Save As…", command=self.save_binary))
 		add(ttk.Separator(self.toolbar_body, orient="vertical"))
-		add(ttk.Button(self.toolbar_body, text="Overlay Binary", command=self.open_overlay_binary))
+		add(ttk.Button(self.toolbar_body, text="Open Binary Overlay", command=self.open_overlay_binary))
 		self.btn_merge_overlay = ttk.Button(self.toolbar_body, text="Merge Overlay", command=self.merge_overlay, state="disabled")
 		add(self.btn_merge_overlay)
 		add(ttk.Separator(self.toolbar_body, orient="vertical"))
@@ -819,38 +819,66 @@ class FringeEditorFrame(tk.Frame):
 					comp_rgb = colors[labels_crop]
 			except Exception:
 				comp_rgb = None
-		if comp_rgb is not None:
-			try: pil_img = Image.fromarray(comp_rgb, mode="RGB").resize((dst_w, dst_h), Image.NEAREST)
-			except Exception: pil_img = Image.fromarray(region_mask, mode="L").resize((dst_w, dst_h), Image.NEAREST)
-		elif self._bg is not None:
-			try: bg_region = self._bg[iy0:iy1, ix0:ix1]; bg_img = Image.fromarray(bg_region, mode="L").resize((dst_w, dst_h), Image.BILINEAR)
-			except Exception: bg_img = None
-			mask_img = Image.fromarray(region_mask, mode="L").resize((dst_w, dst_h), Image.NEAREST)
-			if bg_img is not None:
-				try:
-					factor = float(self.bg_brightness.get()) if self.bg_brightness is not None else 1.0
-				except Exception: factor = 1.0
+		
+		# Prepare background image if available
+		bg_pil = None
+		if self._bg is not None:
+			try:
+				bg_region = self._bg[iy0:iy1, ix0:ix1]
+				bg_img = Image.fromarray(bg_region, mode="L").resize((dst_w, dst_h), Image.BILINEAR)
+				factor = float(self.bg_brightness.get()) if self.bg_brightness is not None else 1.0
 				factor = max(1.0, min(100.0, factor))
-				try:
-					arr = np.asarray(bg_img, dtype=np.float32)
-					arr = np.clip(arr * factor, 0, 255).astype(np.uint8)
-					result = Image.fromarray(arr, mode="L")
-				except Exception:
-					result = bg_img.copy()
-				black_L = Image.new("L", (dst_w, dst_h), 0)
-				mask_inv = ImageOps.invert(mask_img)
-				
-				# Apply opacity
-				opacity = float(self.fringe_opacity.get()) if hasattr(self, 'fringe_opacity') else 1.0
-				if opacity < 1.0:
-					arr = np.asarray(mask_inv, dtype=np.float32)
-					arr = arr * opacity
-					mask_inv = Image.fromarray(arr.astype(np.uint8), mode="L")
+				arr = np.asarray(bg_img, dtype=np.float32)
+				arr = np.clip(arr * factor, 0, 255).astype(np.uint8)
+				bg_pil = Image.fromarray(arr, mode="L").convert("RGB")
+			except Exception:
+				bg_pil = None
 
-				result.paste(black_L, (0, 0), mask_inv)
-				pil_img = result
-			else:
-				pil_img = mask_img
+		if comp_rgb is not None:
+			try: 
+				comp_pil = Image.fromarray(comp_rgb, mode="RGB").resize((dst_w, dst_h), Image.NEAREST)
+				if bg_pil is not None:
+					# Create mask from components (where not white background)
+					# Assuming background in comp_rgb is white (255,255,255)
+					comp_arr = np.array(comp_pil)
+					# Create mask: True where pixel is NOT white
+					is_not_white = np.any(comp_arr != [255, 255, 255], axis=2)
+					
+					# Start with background
+					pil_img = bg_pil.copy()
+					pil_arr = np.array(pil_img)
+					
+					# Overlay components
+					pil_arr[is_not_white] = comp_arr[is_not_white]
+					pil_img = Image.fromarray(pil_arr)
+				else:
+					pil_img = comp_pil
+			except Exception: 
+				pil_img = Image.fromarray(region_mask, mode="L").resize((dst_w, dst_h), Image.NEAREST)
+		elif bg_pil is not None:
+			# Standard display with background
+			mask_img = Image.fromarray(region_mask, mode="L").resize((dst_w, dst_h), Image.NEAREST)
+			
+			# Convert mask to RGBA for compositing or just use L
+			# Here we stick to the logic: Background + Black Fringes
+			
+			result = bg_pil.convert("L") # Convert back to L for existing logic or keep RGB?
+			# Existing logic used L, let's stick to L for consistency unless we want color
+			# But wait, if we want to support color overlays later, RGB is better.
+			# Let's keep it simple and match previous behavior for non-color-comp mode
+			
+			black_L = Image.new("L", (dst_w, dst_h), 0)
+			mask_inv = ImageOps.invert(mask_img)
+			
+			# Apply opacity
+			opacity = float(self.fringe_opacity.get()) if hasattr(self, 'fringe_opacity') else 1.0
+			if opacity < 1.0:
+				arr = np.asarray(mask_inv, dtype=np.float32)
+				arr = arr * opacity
+				mask_inv = Image.fromarray(arr.astype(np.uint8), mode="L")
+
+			result.paste(black_L, (0, 0), mask_inv)
+			pil_img = result
 		else:
 			mask_img = Image.fromarray(region_mask, mode="L").resize((dst_w, dst_h), Image.NEAREST)
 			
