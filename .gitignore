@@ -25,3 +25,5 @@ RawImages/*
 EditedImages/*
 !RawImages/.gitkeep
 !EditedImages/.gitkeep
+logs/*
+!logs/.gitkeep
